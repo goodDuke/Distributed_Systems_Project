@@ -1,28 +1,28 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 public class Broker {
     public static void main(String args[]) {
+        ReadFromFile fileReader = new ReadFromFile();
+        ArrayList<Integer> availablePorts = fileReader.getPorts();
+
         new Broker().openBroker();
     }
 
     ServerSocket providerSocket;
     Socket connection = null;
 
+    // The broker will wait on the given port for a user to connect
     void openBroker() {
-        ReadFromFile fileReader = new ReadFromFile();
-        int port = fileReader.getPort();
+        // Set port manually
+        int port = 1100;
         try {
-            if (port == -1) {
-                System.exit(-1);
-            }
-
             providerSocket = new ServerSocket(port);
             System.out.println("Waiting for connection on port " + port);
 
             while (true) {
                 connection = providerSocket.accept();
-
                 Thread t = new ActionsForClients(connection);
                 t.start();
             }

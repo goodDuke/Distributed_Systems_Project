@@ -1,46 +1,42 @@
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Scanner;
+
 
 public class ReadFromFile {
-    public int getPort() {
-        int port = -1;
-        int newPort = -1;
-        String replacement = "";
-        String delete = "";
+    // ArrayList containing all the currently available ports
+    private ArrayList<Integer> availablePorts = new ArrayList<Integer>();
 
+    public ArrayList<Integer> getPorts() {
         try {
             // Read from the given file
             File file = new File("C:\\Users\\milto\\IdeaProjects\\Distributed_Systems\\txts\\ports.txt");
-            File tempFile = File.createTempFile("file", ".txt", file.getParentFile());
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
-            PrintWriter pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(tempFile)));
+            Scanner scanner = new Scanner(file);
 
-            for (String line; (line = reader.readLine()) != null; ) {
+            // Check if file contains any ports
+            if (!scanner.hasNextLine()) {
+                System.out.println("No ports given.");
+                System.exit(-1);
+            }
+
+            // Save given ports in a HashMap
+            while (scanner.hasNextLine()) {
                 // Check whether the file data is compatible
                 try {
-                    if (port == -1) {
-                        port = Integer.parseInt(line);
-                        delete = line;
-                        newPort = port + 1;
-                        replacement = Integer.toString(newPort);
+                    int port = Integer.parseInt(scanner.nextLine());
+                    if (port > 1024 && !availablePorts.contains(port)) {
+                        availablePorts.add(port);
                     }
-
-                    if (port > 1024) {
-                        line = line.replace(delete, replacement);
-                        pw.println(line);
-                    }
+                    else
+                        System.out.println("The port " + port + " isn't available for use.");
                 } catch (NumberFormatException e) {
                     System.out.println("Invalid input.");
                 }
             }
-            reader.close();
-            pw.close();
-            file.delete();
-            tempFile.renameTo(file);
         } catch (IOException ioException) {
             ioException.printStackTrace();
         }
-        if (port == -1)
-            System.out.println("No available ports.");
-        return port;
+        return availablePorts;
     }
 }
