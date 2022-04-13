@@ -14,16 +14,11 @@ public class Broker {
         int port = fileReader.getPort();
         try {
             if (port == -1) {
-                try {
-                    System.out.println("No ports are available right now.");
-                    providerSocket.close();
-                    System.exit(-1);
-                } catch (IOException ioException) {
-                    ioException.printStackTrace();
-                }
+                System.exit(-1);
             }
 
             providerSocket = new ServerSocket(port);
+            System.out.println("Waiting for connection on port " + port);
 
             while (true) {
                 connection = providerSocket.accept();
@@ -36,7 +31,6 @@ public class Broker {
         } finally {
             try {
                 providerSocket.close();
-                fileReader.releasePort(port);
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }

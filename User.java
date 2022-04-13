@@ -2,15 +2,7 @@ import java.io.*;
 import java.net.*;
 
 public class User extends Thread {
-
-//    int a, b;
-//    Client(int a, int b) {
-//        this.a = a;
-//        this.b = b;
-//    }
-
     Test t;
-
     User(Test t) {
         System.out.println("Connection done" + t.getNumber() + " " + t.isFlag());
         this.t = t;
@@ -24,12 +16,6 @@ public class User extends Thread {
             requestSocket = new Socket("127.0.0.1", 4321);
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
-
-//            out.writeInt(a);
-//            out.flush();
-
-//            out.writeInt(b);
-            //           out.flush();
 
             out.writeObject(t);
             out.flush();
