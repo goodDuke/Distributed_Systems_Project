@@ -4,7 +4,6 @@ import java.net.*;
 public class User extends Thread {
     Test t;
     User(Test t) {
-        System.out.println("Connection done" + t.getNumber() + " " + t.isFlag());
         this.t = t;
     }
 
@@ -12,8 +11,10 @@ public class User extends Thread {
         Socket requestSocket = null;
         ObjectOutputStream out = null;
         ObjectInputStream in = null;
+        String ipAddress = "127.0.0.1";
         try {
-            requestSocket = new Socket("127.0.0.1", 4321);
+            requestSocket = new Socket(ipAddress, t.number);
+            System.out.println("Connected to host: " + ipAddress + " on port: " + t.number);
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
 
@@ -21,11 +22,12 @@ public class User extends Thread {
             out.flush();
 
             Test res = (Test) in.readObject();
-            System.out.println("Server>" + res.getNumber() + " " + res.isFlag());
-
+            System.out.println("Server> " + res.getNumber() + " " + res.isFlag());
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
         } catch (IOException ioException) {
+            System.out.println("An error occurred while trying to connect to host: " + ipAddress + " on port: " +
+                    t.number + ". Check the IP address and the port.");
             ioException.printStackTrace();
         } catch (ClassNotFoundException e) {
             //TODO auto-generated catch
@@ -42,7 +44,9 @@ public class User extends Thread {
     }
 
     public static void main(String args[]) {
-        Test t = new Test(3, false);
+        Test t = new Test(1100, false);
+        Test t1 = new Test(1200, false);
         new User(t).start();
+        new User(t1).start();
     }
 }

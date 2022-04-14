@@ -15,14 +15,15 @@ public class Broker {
 
     // The broker will wait on the given port for a user to connect
     void openBroker() {
-        // Set port manually
+        // TODO set port manually
         int port = 1100;
         try {
             providerSocket = new ServerSocket(port);
-            System.out.println("Waiting for connection on port " + port);
 
             while (true) {
+                System.out.println("Waiting for connection on port " + port);
                 connection = providerSocket.accept();
+                System.out.println("Connected on port " + port);
                 Thread t = new ActionsForClients(connection);
                 t.start();
             }

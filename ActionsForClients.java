@@ -16,13 +16,9 @@ public class ActionsForClients extends Thread {
 
     public void run() {
         try {
-//          int a = in.readInt();
-//          int b = in.readInt();
             Test body = (Test) in.readObject();
             body.setFlag(true);
-            body.setNumber(body.getNumber()+1);
             out.writeObject(body);
-            //out.writeInt(a + b);
             out.flush();
         } catch (IOException e) {
             e.printStackTrace();
