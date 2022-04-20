@@ -11,6 +11,7 @@ public class ReadFromFile {
     public ArrayList<Integer> getPorts() {
         try {
             // Read from the given file
+            // TODO change the path
             File file = new File("C:\\Users\\milto\\IdeaProjects\\Distributed_Systems\\txts\\ports.txt");
             Scanner scanner = new Scanner(file);
 
@@ -43,6 +44,7 @@ public class ReadFromFile {
     public ArrayList<String> getTopics() {
         try {
             // Read from the given file
+            // TODO change the path
             File file = new File("C:\\Users\\milto\\IdeaProjects\\Distributed_Systems\\txts\\topics.txt");
             Scanner scanner = new Scanner(file);
 

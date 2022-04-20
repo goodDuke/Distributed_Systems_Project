@@ -1,11 +1,12 @@
 import java.io.*;
 import java.net.*;
+import java.util.HashMap;
 
 public class ActionsForUsers extends Thread {
     ObjectInputStream in;
     ObjectOutputStream out;
 
-    public ActionsForUsers(Socket connection) {
+    public ActionsForUsers(Socket connection, HashMap<Integer, Integer> brokers, int[][] topics) {
         try {
             out = new ObjectOutputStream(connection.getOutputStream());
             in = new ObjectInputStream(connection.getInputStream());
