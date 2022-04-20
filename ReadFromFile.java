@@ -3,10 +3,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-
 public class ReadFromFile {
     // ArrayList containing all the currently available ports
     private ArrayList<Integer> availablePorts = new ArrayList<Integer>();
+    private ArrayList<String> availableTopics = new ArrayList<String>();
 
     public ArrayList<Integer> getPorts() {
         try {
@@ -20,7 +20,7 @@ public class ReadFromFile {
                 System.exit(-1);
             }
 
-            // Save given ports in a HashMap
+            // Save given ports in an ArrayList
             while (scanner.hasNextLine()) {
                 // Check whether the file data is compatible
                 try {
@@ -38,5 +38,28 @@ public class ReadFromFile {
             ioException.printStackTrace();
         }
         return availablePorts;
+    }
+
+    public ArrayList<String> getTopics() {
+        try {
+            // Read from the given file
+            File file = new File("C:\\Users\\milto\\IdeaProjects\\Distributed_Systems\\txts\\topics.txt");
+            Scanner scanner = new Scanner(file);
+
+            // Check if file contains any topics
+            if (!scanner.hasNextLine()) {
+                System.out.println("No topics given.");
+                System.exit(-1);
+            }
+
+            // Save given topics in an ArrayList
+            while (scanner.hasNextLine()) {
+                String topic = scanner.nextLine();
+                availableTopics.add(topic);
+            }
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
+        return availableTopics;
     }
 }

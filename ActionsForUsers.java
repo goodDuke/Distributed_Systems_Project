@@ -1,11 +1,11 @@
 import java.io.*;
 import java.net.*;
 
-public class ActionsForClients extends Thread {
+public class ActionsForUsers extends Thread {
     ObjectInputStream in;
     ObjectOutputStream out;
 
-    public ActionsForClients(Socket connection) {
+    public ActionsForUsers(Socket connection) {
         try {
             out = new ObjectOutputStream(connection.getOutputStream());
             in = new ObjectInputStream(connection.getInputStream());

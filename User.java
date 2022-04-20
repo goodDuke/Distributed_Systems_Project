@@ -22,7 +22,7 @@ public class User extends Thread {
             out.flush();
 
             Test res = (Test) in.readObject();
-            System.out.println("Server> " + res.getNumber() + " " + res.isFlag());
+            //System.out.println("Server> " + res.getNumber() + " " + res.isFlag());
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
         } catch (IOException ioException) {
@@ -37,6 +37,7 @@ public class User extends Thread {
                 in.close();
                 out.close();
                 requestSocket.close();
+                System.out.println("Connection closed");
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
