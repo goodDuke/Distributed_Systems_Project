@@ -20,11 +20,25 @@ public class ActionsForPublishers extends Thread {
     }
 
     public void run() {
+        try {
+            getBroker();
+        } finally {
+            try {
+                in.close();
+                out.close();
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+        }
+    }
+
+    // Find the broker that contains the requested topic
+    private void getBroker() {
         int matchedBroker = 0;
         try {
             int requestedTopic = in.readInt();
-            for (int i = 0; i < brokers.size(); i++){
-                for (int topic: topics[i]) {
+            for (int i = 0; i < brokers.size(); i++) {
+                for (int topic : topics[i]) {
                     if (requestedTopic == topic) {
                         matchedBroker = i + 1;
                         break;
@@ -36,21 +50,12 @@ public class ActionsForPublishers extends Thread {
                     break;
                 }
             }
-
             if (matchedBroker == 0) {
-                System.out.println("The topic doesn't exist.");
                 out.writeObject(null);
                 out.flush();
             }
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                in.close();
-                out.close();
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
         }
     }
 }

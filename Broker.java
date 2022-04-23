@@ -78,7 +78,8 @@ public class Broker implements Serializable {
         }
         for (int i = 0; i < brokersNum; i++) {
             for (int t: registeredTopics[i]) {
-                System.out.println(i + " " + t);
+                if (t != 0)
+                    System.out.println(i + " " + t);
             }
         }
         return registeredTopics;
