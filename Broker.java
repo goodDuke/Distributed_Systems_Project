@@ -24,7 +24,7 @@ public class Broker implements Serializable {
         topics = matchTopicToBroker(availableTopics, brokersNum);
 
         // TODO set port and IP manually
-        int port = 1200;
+        int port = 1100;
         String ip = "127.0.0.1";
         new Broker(ip, port).acceptConnection();
     }
@@ -35,7 +35,7 @@ public class Broker implements Serializable {
             providerSocket = new ServerSocket(port);
 
             while (true) {
-                // Open connection on Port and connect to Publisher/Producer
+                // Open connection on port and connect to publisher
                 System.out.println("Waiting for connection on port " + port);
                 connection = providerSocket.accept();
                 System.out.println("Connected on port: " + port);
