@@ -21,7 +21,11 @@ public class ActionsForPublishers extends Thread {
 
     public void run() {
         try {
-            getBroker();
+            boolean firstConnection = in.readBoolean();
+            if (firstConnection)
+                getBroker();
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             try {
                 in.close();
