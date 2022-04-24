@@ -19,7 +19,7 @@ public class Publisher extends Thread {
         Broker b2 = new Broker("127.0.0.1", 1200);
         new Publisher(b1).start();
         Thread.sleep(500);
-        new Publisher(b2).start();
+        //new Publisher(b2).start();
     }
 
     public void run() {
@@ -91,6 +91,18 @@ public class Publisher extends Thread {
             firstConnection = false;
             out.writeBoolean(firstConnection);
             out.flush();
+        }
+    }
+
+    private void sendFileToBroker() throws IOException {
+        Scanner s = new Scanner(System.in);
+        System.out.println("Enter the path of the file: ");
+        String path = s.nextLine();
+        File file = new File(path);
+        byte[] data = fileToByteArray(file);
+        ArrayList<byte[]> chunks = createChunks(data);
+        for (byte[] chunk: chunks) {
+            out.writeObject(chunk);
         }
     }
 

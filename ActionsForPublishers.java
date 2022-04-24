@@ -26,7 +26,14 @@ public class ActionsForPublishers extends Thread {
             boolean firstConnection = in.readBoolean();
             if (firstConnection)
                 getBroker();
-        } catch (IOException e) {
+
+            byte[] chunk = (byte[]) in.readObject();
+
+            // TODO create array of appropriate length
+            // TODO for loop of length - 1 (not counting first chunk) and add the chunks to the array
+            // TODO for debugging (used in consumer) try to recreate the file
+
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         } finally {
             try {
@@ -65,3 +72,6 @@ public class ActionsForPublishers extends Thread {
         }
     }
 }
+
+// TODO first chunk must have info for the amount of chunks to follow
+// TODO broker must see the length and create an appropriate array
