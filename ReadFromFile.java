@@ -13,7 +13,7 @@ public class ReadFromFile {
         try {
             // Read from the given file
             // TODO change the path
-            File file = new File("C:\\Users\\milto\\IdeaProjects\\Distributed_Systems\\txts\\ports.txt");
+            File file = new File("C:\\Users\\elias\\IdeaProjects\\Distributed_Systems\\src\\txts\\ports.txt");
             Scanner scanner = new Scanner(file);
 
             // Check if file contains any ports
@@ -46,7 +46,7 @@ public class ReadFromFile {
         try {
             // Read from the given file
             // TODO change the path
-            File file = new File("C:\\Users\\milto\\IdeaProjects\\Distributed_Systems\\txts\\ips.txt");
+            File file = new File("C:\\Users\\elias\\IdeaProjects\\Distributed_Systems\\src\\txts\\ips.txt");
             Scanner scanner = new Scanner(file);
 
             // Check if file contains any ips
@@ -74,7 +74,7 @@ public class ReadFromFile {
         try {
             // Read from the given file
             // TODO change the path~
-            File file = new File("C:\\Users\\milto\\IdeaProjects\\Distributed_Systems\\txts\\topics.txt");
+            File file = new File("C:\\Users\\elias\\IdeaProjects\\Distributed_Systems\\src\\txts\\topics.txt");
             Scanner scanner = new Scanner(file);
 
             // Check if file contains any topics

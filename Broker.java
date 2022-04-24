@@ -12,6 +12,8 @@ public class Broker implements Serializable {
     private Socket connection = null;
 
     public static void main(String args[]) {
+
+        // Read Ports, Ips, Topics from txt files
         ReadFromFile fileReader = new ReadFromFile();
         ArrayList<Integer> availablePorts = fileReader.getPorts();
         ArrayList<String> availableIps = fileReader.getIps();
@@ -33,6 +35,7 @@ public class Broker implements Serializable {
             providerSocket = new ServerSocket(port);
 
             while (true) {
+                // Open connection on Port and connect to Publisher/Producer
                 System.out.println("Waiting for connection on port " + port);
                 connection = providerSocket.accept();
                 System.out.println("Connected on port: " + port);
