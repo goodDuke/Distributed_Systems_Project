@@ -35,6 +35,7 @@ public class Publisher extends Thread {
 
             out.writeInt(topicCode);
             out.flush();
+            // Get broker object which contains the requested topic
             Broker matchedBroker = (Broker) in.readObject();
 
             if (matchedBroker == null)
@@ -93,6 +94,7 @@ public class Publisher extends Thread {
         }
     }
 
+    // Convert file to byte array
     private byte[] fileToByteArray(File file) throws IOException {
         FileInputStream fl = new FileInputStream(file);
         byte[] data = new byte[(int)file.length()];
@@ -101,6 +103,7 @@ public class Publisher extends Thread {
         return data;
     }
 
+    // From the byte array create the chunks to be sent to the broker
     private ArrayList<byte[]> createChunks(byte[] data) {
         int blockSize = 512 * 1024;
         ArrayList<byte[]> listOfChunks = new ArrayList<>();

@@ -21,6 +21,8 @@ public class ActionsForPublishers extends Thread {
 
     public void run() {
         try {
+            // Check which broker contains the requested topic only if the
+            // current broker is the first one the publisher connected to
             boolean firstConnection = in.readBoolean();
             if (firstConnection)
                 getBroker();
