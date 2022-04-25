@@ -31,20 +31,22 @@ public class Publisher extends Thread {
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
 
-            out.writeBoolean(firstConnection);
+            out.writeBoolean(firstConnection); // 1
             out.flush();
 
-            out.writeInt(topicCode);
+            out.writeInt(topicCode); // 2
             out.flush();
             // Get broker object which contains the requested topic
-            Broker matchedBroker = (Broker) in.readObject();
+            Broker matchedBroker = (Broker) in.readObject(); // 3
 
             if (matchedBroker == null)
                 System.out.println("The topic \"" + topicString + "\" doesn't exist.");
-            else
+            else {
                 connectToMatchedBroker(matchedBroker);
+                push(topicCode);
+            }
 
-            push(topicCode);
+
 
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
@@ -81,7 +83,7 @@ public class Publisher extends Thread {
     private void connectToMatchedBroker(Broker matchedBroker) throws IOException{
         if (!Objects.equals(b.getIp(), matchedBroker.getIp()) || !Objects.equals(b.getPort(), matchedBroker.getPort())) {
             changedBroker = true;
-            out.writeObject(changedBroker);
+            out.writeBoolean(changedBroker); // 4
             out.flush();
             in.close();
             out.close();
@@ -93,25 +95,26 @@ public class Publisher extends Thread {
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
             firstConnection = false;
-            out.writeBoolean(firstConnection);
+            out.writeBoolean(firstConnection); // 1
             out.flush();
         } else {
-            out.writeObject(changedBroker);
+            out.writeBoolean(changedBroker); // 4
             out.flush();
         }
     }
 
     private void push(int topicCode) throws IOException {
-        out.writeInt(topicCode);
+        out.writeInt(topicCode); // 5
         out.flush();
         Scanner s = new Scanner(System.in);
         System.out.println("Enter the path of the file: ");
-        String path = s.nextLine();
+        //String path = s.nextLine();
+        String path = ".\\src\\data\\mnm.txt";
         File file = new File(path);
         byte[] data = fileToByteArray(file);
         ArrayList<byte[]> chunks = createChunks(data);
         for (byte[] chunk: chunks) {
-            out.writeObject(chunk);
+            out.writeObject(chunk); // 7
             out.flush();
         }
     }
@@ -130,11 +133,10 @@ public class Publisher extends Thread {
         int blockSize = 512 * 1024;
         ArrayList<byte[]> listOfChunks = new ArrayList<>();
         int blockCount = (data.length + blockSize - 1) / blockSize;
-        out.writeInt(blockCount);
+        out.writeInt(blockCount); // 6
         out.flush();
         byte[] chunk;
         int start;
-
         for (int i = 1; i < blockCount; i++) {
             start = (i - 1) * blockSize;
             chunk = Arrays.copyOfRange(data, start, start + blockSize);
@@ -147,7 +149,6 @@ public class Publisher extends Thread {
         } else {
             end = data.length % blockSize + blockSize * (blockCount - 1);
         }
-
         chunk = Arrays.copyOfRange(data, (blockCount - 1) * blockSize, end);
         listOfChunks.add(chunk);
         return listOfChunks;

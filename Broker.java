@@ -24,7 +24,7 @@ public class Broker implements Serializable {
         topics = matchTopicToBroker(availableTopics, brokersNum);
 
         // TODO set port and IP manually
-        int port = 1100;
+        int port = 1200;
         String ip = "127.0.0.1";
         new Broker(ip, port).acceptConnection();
     }
@@ -56,7 +56,7 @@ public class Broker implements Serializable {
 
     // Match each broker to address
     private static HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts, int brokersNum) {
-        int i = 1;
+        int i = 0;
         HashMap<Integer, Broker> brokerAddresses = new HashMap<Integer, Broker>();
         for (int j = 0; j < availablePorts.size(); j++) {
             brokerAddresses.put(i, new Broker(availableIps.get(j), availablePorts.get(j)));
@@ -79,12 +79,12 @@ public class Broker implements Serializable {
                 }
             }
         }
-        /*for (int i = 0; i < brokersNum; i++) {
+        for (int i = 0; i < brokersNum; i++) {
             for (int t: registeredTopics[i]) {
                 if (t != 0)
                     System.out.println(i + " " + t);
             }
-        }*/
+        }
         return registeredTopics;
     }
 

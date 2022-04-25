@@ -12,13 +12,16 @@ public class ActionsForPublishers extends Thread {
     private int[][] topics;
     // Create a queue for each topic. Find the queue in the HashMap by the topic code
     private HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
+    private String ip;
+    private int port;
 
     public ActionsForPublishers(Socket connection, HashMap<Integer, Broker> brokers,
                                 int[][] topics, String ip, int port) {
         try {
             this.brokers = brokers;
             this.topics = topics;
-            initializeQueues(ip, port);
+            this.ip = ip;
+            this.port = port;
             out = new ObjectOutputStream(connection.getOutputStream());
             in = new ObjectInputStream(connection.getInputStream());
         } catch (IOException e) {
@@ -28,14 +31,15 @@ public class ActionsForPublishers extends Thread {
 
     public void run() {
         try {
+            initializeQueues(ip, port);
             // Check which broker contains the requested topic only if the
             // current broker is the first one the publisher connected to
-            boolean firstConnection = in.readBoolean();
+            boolean firstConnection = in.readBoolean(); // 1
             boolean changedBroker = false;
 
             if (firstConnection) {
                 getBroker();
-                changedBroker = in.readBoolean();
+                changedBroker = in.readBoolean(); // 4
             }
 
             if (!changedBroker)
@@ -61,35 +65,37 @@ public class ActionsForPublishers extends Thread {
                 currentBroker = b;
             }
         }
-
         for (int topicCode: topics[currentBroker]) {
             Queue<byte[]> queue = new LinkedList<>();
-            if (topicCode != 0)
+            if (topicCode != 0) {
                 queues.put(topicCode, queue);
+            }
         }
     }
 
     // Collecting the chunks for a specific file and adding them to the correct queue
     private void receiveData() throws IOException, ClassNotFoundException {
-        int topicCode = in.readInt();
-        int blockCount = in.readInt();
+        int topicCode = in.readInt(); // 5
+        int blockCount = in.readInt(); // 6
         for (int i = 1; i <= blockCount; i++){
-            byte[] chunk = (byte[]) in.readObject();
+            byte[] chunk = (byte[]) in.readObject(); // 7
             queues.get(topicCode).add(chunk);
         }
         recreateFile(topicCode, blockCount);
     }
 
     private void recreateFile(int topicCode, int blockCount) throws IOException {
-        String filepath = "./recreated_files";
+        String filepath = ".\\src\\recreated_files\\Marnie.jpg";
         File file = new File(filepath);
 
         OutputStream stream = new FileOutputStream(file);
         byte[] completeFile = new byte[512 * 1024 * blockCount];
         int i = 0;
         for (byte[] chunk: queues.get(topicCode)) {
-            for (byte b: chunk)
+            for (byte b: chunk) {
                 completeFile[i] = b;
+                i++;
+            }
         }
         stream.write(completeFile);
         stream.close();
@@ -97,24 +103,24 @@ public class ActionsForPublishers extends Thread {
 
     // Find the broker that contains the requested topic
     private void getBroker() {
-        int matchedBroker = 0;
+        int matchedBroker = -1;
         try {
-            int requestedTopic = in.readInt();
+            int requestedTopic = in.readInt(); // 2
             for (int i = 0; i < brokers.size(); i++) {
                 for (int topic : topics[i]) {
                     if (requestedTopic == topic) {
-                        matchedBroker = i + 1;
+                        matchedBroker = i;
                         break;
                     }
                 }
-                if (matchedBroker != 0) {
-                    out.writeObject(brokers.get(matchedBroker));
+                if (matchedBroker != -1) {
+                    out.writeObject(brokers.get(matchedBroker)); // 3
                     out.flush();
                     break;
                 }
             }
             if (matchedBroker == 0) {
-                out.writeObject(null);
+                out.writeObject(null); // 3
                 out.flush();
             }
         } catch (IOException e) {
