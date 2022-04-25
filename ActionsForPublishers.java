@@ -31,10 +31,14 @@ public class ActionsForPublishers extends Thread {
             // Check which broker contains the requested topic only if the
             // current broker is the first one the publisher connected to
             boolean firstConnection = in.readBoolean();
-            if (firstConnection)
-                getBroker();
+            boolean changedBroker = false;
 
-            if (!firstConnection)
+            if (firstConnection) {
+                getBroker();
+                changedBroker = in.readBoolean();
+            }
+
+            if (!changedBroker)
                 receiveData();
 
         } catch (IOException | ClassNotFoundException e) {

@@ -13,7 +13,7 @@ public class Broker implements Serializable {
 
     public static void main(String args[]) {
 
-        // Read Ports, Ips, Topics from txt files
+        // Read ports, Ips, topics from txt files
         ReadFromFile fileReader = new ReadFromFile();
         ArrayList<Integer> availablePorts = fileReader.getPorts();
         ArrayList<String> availableIps = fileReader.getIps();
@@ -24,7 +24,7 @@ public class Broker implements Serializable {
         topics = matchTopicToBroker(availableTopics, brokersNum);
 
         // TODO set port and IP manually
-        int port = 1200;
+        int port = 1100;
         String ip = "127.0.0.1";
         new Broker(ip, port).acceptConnection();
     }

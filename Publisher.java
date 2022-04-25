@@ -13,6 +13,7 @@ public class Publisher extends Thread {
     private int topicCode;
     private String topicString;
     private boolean firstConnection = true;
+    private boolean changedBroker = false;
 
     public static void main(String args[]) throws InterruptedException {
         Broker b1 = new Broker("127.0.0.1", 1100);
@@ -43,7 +44,6 @@ public class Publisher extends Thread {
             else
                 connectToMatchedBroker(matchedBroker);
 
-            // TODO send file to broker (get byte array, create chunks)
             push(topicCode);
 
         } catch (UnknownHostException unknownHost) {
@@ -80,6 +80,9 @@ public class Publisher extends Thread {
     // Otherwise close the current connection and connect to the right one
     private void connectToMatchedBroker(Broker matchedBroker) throws IOException{
         if (!Objects.equals(b.getIp(), matchedBroker.getIp()) || !Objects.equals(b.getPort(), matchedBroker.getPort())) {
+            changedBroker = true;
+            out.writeObject(changedBroker);
+            out.flush();
             in.close();
             out.close();
             requestSocket.close();
@@ -91,6 +94,9 @@ public class Publisher extends Thread {
             in = new ObjectInputStream(requestSocket.getInputStream());
             firstConnection = false;
             out.writeBoolean(firstConnection);
+            out.flush();
+        } else {
+            out.writeObject(changedBroker);
             out.flush();
         }
     }
