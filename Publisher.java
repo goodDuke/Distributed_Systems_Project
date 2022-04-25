@@ -123,7 +123,6 @@ public class Publisher extends Thread {
     private ArrayList<byte[]> createChunks(byte[] data) throws IOException {
         int blockSize = 512 * 1024;
         ArrayList<byte[]> listOfChunks = new ArrayList<>();
-        System.out.println(data.length % blockSize);
         int blockCount = (data.length + blockSize - 1) / blockSize;
         out.writeInt(blockCount);
         out.flush();

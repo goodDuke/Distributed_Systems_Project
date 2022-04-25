@@ -10,9 +10,11 @@ public class ActionsForPublishers extends Thread {
     ObjectOutputStream out;
     private HashMap<Integer, Broker> brokers;
     private int[][] topics;
+    // Create a queue for each topic. Find the queue in the HashMap by the topic code
     private HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
 
-    public ActionsForPublishers(Socket connection, HashMap<Integer, Broker> brokers, int[][] topics, String ip, int port) {
+    public ActionsForPublishers(Socket connection, HashMap<Integer, Broker> brokers,
+                                int[][] topics, String ip, int port) {
         try {
             this.brokers = brokers;
             this.topics = topics;
@@ -32,7 +34,8 @@ public class ActionsForPublishers extends Thread {
             if (firstConnection)
                 getBroker();
 
-            receiveData();
+            if (!firstConnection)
+                receiveData();
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -46,6 +49,7 @@ public class ActionsForPublishers extends Thread {
         }
     }
 
+    // Initialize Broker's queues. For each topic there is one queue
     private void initializeQueues(String ip, int port) {
         int currentBroker = -1;
         for (int b: brokers.keySet()) {
@@ -61,6 +65,7 @@ public class ActionsForPublishers extends Thread {
         }
     }
 
+    // Collecting the chunks for a specific file and adding them to the correct queue
     private void receiveData() throws IOException, ClassNotFoundException {
         int topicCode = in.readInt();
         int blockCount = in.readInt();
@@ -68,6 +73,22 @@ public class ActionsForPublishers extends Thread {
             byte[] chunk = (byte[]) in.readObject();
             queues.get(topicCode).add(chunk);
         }
+        recreateFile(topicCode, blockCount);
+    }
+
+    private void recreateFile(int topicCode, int blockCount) throws IOException {
+        String filepath = "./recreated_files";
+        File file = new File(filepath);
+
+        OutputStream stream = new FileOutputStream(file);
+        byte[] completeFile = new byte[512 * 1024 * blockCount];
+        int i = 0;
+        for (byte[] chunk: queues.get(topicCode)) {
+            for (byte b: chunk)
+                completeFile[i] = b;
+        }
+        stream.write(completeFile);
+        stream.close();
     }
 
     // Find the broker that contains the requested topic
@@ -97,6 +118,3 @@ public class ActionsForPublishers extends Thread {
         }
     }
 }
-
-// TODO first chunk must have info for the amount of chunks to follow
-// TODO broker must see the length and create an appropriate array
