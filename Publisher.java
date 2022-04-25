@@ -44,6 +44,7 @@ public class Publisher extends Thread {
                 connectToMatchedBroker(matchedBroker);
 
             // TODO send file to broker (get byte array, create chunks)
+            push(topicCode);
 
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
@@ -94,7 +95,9 @@ public class Publisher extends Thread {
         }
     }
 
-    private void sendFileToBroker() throws IOException {
+    private void push(int topicCode) throws IOException {
+        out.writeInt(topicCode);
+        out.flush();
         Scanner s = new Scanner(System.in);
         System.out.println("Enter the path of the file: ");
         String path = s.nextLine();
@@ -103,6 +106,7 @@ public class Publisher extends Thread {
         ArrayList<byte[]> chunks = createChunks(data);
         for (byte[] chunk: chunks) {
             out.writeObject(chunk);
+            out.flush();
         }
     }
 
@@ -116,15 +120,18 @@ public class Publisher extends Thread {
     }
 
     // From the byte array create the chunks to be sent to the broker
-    private ArrayList<byte[]> createChunks(byte[] data) {
+    private ArrayList<byte[]> createChunks(byte[] data) throws IOException {
         int blockSize = 512 * 1024;
         ArrayList<byte[]> listOfChunks = new ArrayList<>();
         System.out.println(data.length % blockSize);
         int blockCount = (data.length + blockSize - 1) / blockSize;
+        out.writeInt(blockCount);
+        out.flush();
         byte[] chunk;
+        int start;
 
         for (int i = 1; i < blockCount; i++) {
-            int start = (i - 1) * blockSize;
+            start = (i - 1) * blockSize;
             chunk = Arrays.copyOfRange(data, start, start + blockSize);
             listOfChunks.add(chunk);
         }

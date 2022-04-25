@@ -24,7 +24,7 @@ public class Broker implements Serializable {
         topics = matchTopicToBroker(availableTopics, brokersNum);
 
         // TODO set port and IP manually
-        int port = 1100;
+        int port = 1200;
         String ip = "127.0.0.1";
         new Broker(ip, port).acceptConnection();
     }
@@ -40,7 +40,7 @@ public class Broker implements Serializable {
                 connection = providerSocket.accept();
                 System.out.println("Connected on port: " + port);
                 System.out.println("Connected user: " + connection.getInetAddress().getHostName());
-                Thread t = new ActionsForPublishers(connection, brokers, topics);
+                Thread t = new ActionsForPublishers(connection, brokers, topics, getIp(), getPort());
                 t.start();
             }
         } catch (IOException ioException) {
@@ -79,12 +79,12 @@ public class Broker implements Serializable {
                 }
             }
         }
-        for (int i = 0; i < brokersNum; i++) {
+        /*for (int i = 0; i < brokersNum; i++) {
             for (int t: registeredTopics[i]) {
                 if (t != 0)
                     System.out.println(i + " " + t);
             }
-        }
+        }*/
         return registeredTopics;
     }
 

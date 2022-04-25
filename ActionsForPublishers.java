@@ -1,17 +1,22 @@
 import java.io.*;
 import java.net.*;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Objects;
+import java.util.Queue;
 
 public class ActionsForPublishers extends Thread {
     ObjectInputStream in;
     ObjectOutputStream out;
     private HashMap<Integer, Broker> brokers;
     private int[][] topics;
+    private HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
 
-    public ActionsForPublishers(Socket connection, HashMap<Integer, Broker> brokers, int[][] topics) {
+    public ActionsForPublishers(Socket connection, HashMap<Integer, Broker> brokers, int[][] topics, String ip, int port) {
         try {
             this.brokers = brokers;
             this.topics = topics;
+            initializeQueues(ip, port);
             out = new ObjectOutputStream(connection.getOutputStream());
             in = new ObjectInputStream(connection.getInputStream());
         } catch (IOException e) {
@@ -27,11 +32,7 @@ public class ActionsForPublishers extends Thread {
             if (firstConnection)
                 getBroker();
 
-            byte[] chunk = (byte[]) in.readObject();
-
-            // TODO create array of appropriate length
-            // TODO for loop of length - 1 (not counting first chunk) and add the chunks to the array
-            // TODO for debugging (used in consumer) try to recreate the file
+            receiveData();
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -42,6 +43,30 @@ public class ActionsForPublishers extends Thread {
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
+        }
+    }
+
+    private void initializeQueues(String ip, int port) {
+        int currentBroker = -1;
+        for (int b: brokers.keySet()) {
+            if (Objects.equals(brokers.get(b).getIp(), ip) && brokers.get(b).getPort() == port) {
+                currentBroker = b;
+            }
+        }
+
+        for (int topicCode: topics[currentBroker]) {
+            Queue<byte[]> queue = new LinkedList<>();
+            if (topicCode != 0)
+                queues.put(topicCode, queue);
+        }
+    }
+
+    private void receiveData() throws IOException, ClassNotFoundException {
+        int topicCode = in.readInt();
+        int blockCount = in.readInt();
+        for (int i = 1; i <= blockCount; i++){
+            byte[] chunk = (byte[]) in.readObject();
+            queues.get(topicCode).add(chunk);
         }
     }
 
