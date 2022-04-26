@@ -32,19 +32,7 @@ public class ActionsForPublishers extends Thread {
     public void run() {
         try {
             initializeQueues(ip, port);
-            // Check which broker contains the requested topic only if the
-            // current broker is the first one the publisher connected to
-            boolean firstConnection = in.readBoolean(); // 1
-            boolean changedBroker = false;
-
-            if (firstConnection) {
-                getBroker();
-                changedBroker = in.readBoolean(); // 4
-            }
-
-            if (!changedBroker)
-                receiveData();
-
+            receiveData();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         } finally {
@@ -77,7 +65,7 @@ public class ActionsForPublishers extends Thread {
     private void receiveData() throws IOException, ClassNotFoundException {
         int topicCode = in.readInt(); // 5
         int blockCount = in.readInt(); // 6
-        for (int i = 1; i <= blockCount; i++){
+        for (int i = 1; i <= blockCount; i++) {
             byte[] chunk = (byte[]) in.readObject(); // 7
             queues.get(topicCode).add(chunk);
         }
@@ -85,7 +73,7 @@ public class ActionsForPublishers extends Thread {
     }
 
     private void recreateFile(int topicCode, int blockCount) throws IOException {
-        String filepath = ".\\src\\recreated_files\\Marnie.jpg";
+        String filepath = ".\\src\\recreated_files\\video.mp4";
         File file = new File(filepath);
 
         OutputStream stream = new FileOutputStream(file);
@@ -99,32 +87,5 @@ public class ActionsForPublishers extends Thread {
         }
         stream.write(completeFile);
         stream.close();
-    }
-
-    // Find the broker that contains the requested topic
-    private void getBroker() {
-        int matchedBroker = -1;
-        try {
-            int requestedTopic = in.readInt(); // 2
-            for (int i = 0; i < brokers.size(); i++) {
-                for (int topic : topics[i]) {
-                    if (requestedTopic == topic) {
-                        matchedBroker = i;
-                        break;
-                    }
-                }
-                if (matchedBroker != -1) {
-                    out.writeObject(brokers.get(matchedBroker)); // 3
-                    out.flush();
-                    break;
-                }
-            }
-            if (matchedBroker == 0) {
-                out.writeObject(null); // 3
-                out.flush();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }

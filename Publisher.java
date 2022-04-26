@@ -11,51 +11,18 @@ public class Publisher extends Thread {
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private int topicCode;
-    private String topicString;
-    private boolean firstConnection = true;
-    private boolean changedBroker = false;
-
-    public static void main(String args[]) throws InterruptedException {
-        Broker b1 = new Broker("127.0.0.1", 1100);
-        Broker b2 = new Broker("127.0.0.1", 1200);
-        new Publisher(b1).start();
-        Thread.sleep(500);
-        //new Publisher(b2).start();
-    }
 
     public void run() {
         try {
-            requestSocket = new Socket(b.getIp(), b.getPort());
-            System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
-            topicCode = getTopic();
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
-
-            out.writeBoolean(firstConnection); // 1
-            out.flush();
-
-            out.writeInt(topicCode); // 2
-            out.flush();
-            // Get broker object which contains the requested topic
-            Broker matchedBroker = (Broker) in.readObject(); // 3
-
-            if (matchedBroker == null)
-                System.out.println("The topic \"" + topicString + "\" doesn't exist.");
-            else {
-                connectToMatchedBroker(matchedBroker);
-                push(topicCode);
-            }
-
-
-
+            push(topicCode);
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
         } catch (IOException ioException) {
             System.out.println("An error occurred while trying to connect to host: " + b.getIp() + " on port: " +
                     b.getPort() + ". Check the IP address and the port.");
             ioException.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
         } finally {
             try {
                 in.close();
@@ -68,48 +35,13 @@ public class Publisher extends Thread {
         }
     }
 
-    // Create a hash code for the given topic
-    private int getTopic() {
-        Scanner s = new Scanner(System.in);
-        System.out.println("Enter the topic for port " + b.getPort() + ": ");
-        topicString = s.nextLine();
-
-        int code = topicString.hashCode();
-        return code;
-    }
-
-    // Check if the current broker is the correct one
-    // Otherwise close the current connection and connect to the right one
-    private void connectToMatchedBroker(Broker matchedBroker) throws IOException{
-        if (!Objects.equals(b.getIp(), matchedBroker.getIp()) || !Objects.equals(b.getPort(), matchedBroker.getPort())) {
-            changedBroker = true;
-            out.writeBoolean(changedBroker); // 4
-            out.flush();
-            in.close();
-            out.close();
-            requestSocket.close();
-            System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
-            b = matchedBroker;
-            requestSocket = new Socket(b.getIp(), b.getPort());
-            System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
-            out = new ObjectOutputStream(requestSocket.getOutputStream());
-            in = new ObjectInputStream(requestSocket.getInputStream());
-            firstConnection = false;
-            out.writeBoolean(firstConnection); // 1
-            out.flush();
-        } else {
-            out.writeBoolean(changedBroker); // 4
-            out.flush();
-        }
-    }
-
     private void push(int topicCode) throws IOException {
         out.writeInt(topicCode); // 5
         out.flush();
         Scanner s = new Scanner(System.in);
         System.out.println("Enter the path of the file: ");
         //String path = s.nextLine();
-        String path = ".\\src\\data\\mnm.txt";
+        String path = ".\\src\\data\\video.mp4";
         File file = new File(path);
         byte[] data = fileToByteArray(file);
         ArrayList<byte[]> chunks = createChunks(data);
@@ -154,7 +86,9 @@ public class Publisher extends Thread {
         return listOfChunks;
     }
 
-    Publisher(Broker b) {
+    Publisher(Broker b, int topicCode, Socket requestSocket) {
         this.b = b;
+        this.topicCode = topicCode;
+        this.requestSocket = requestSocket;
     }
 }
