@@ -1,7 +1,6 @@
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 public class Broker implements Serializable {
     private int requestedTopic;
@@ -16,6 +15,7 @@ public class Broker implements Serializable {
     private boolean publisherMode;
     private Thread t;
     private int currentBroker;
+    private HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
 
     public static void main(String[] args) {
         // TODO set port and IP manually
@@ -27,7 +27,7 @@ public class Broker implements Serializable {
     // The broker will wait on the given port for a user to connect
     private void acceptConnection() {
         try {
-            // Read ports, Ips, topics from txt files
+            // Read ports, IPs, topics from txt files
             ReadFromFile fileReader = new ReadFromFile();
             ArrayList<Integer> availablePorts = fileReader.getPorts();
             ArrayList<String> availableIps = fileReader.getIps();
@@ -38,6 +38,7 @@ public class Broker implements Serializable {
 
             brokers = matchBrokerToAddress(availableIps, availablePorts, brokersNum);
             topics = matchTopicToBroker(availableTopics, brokersNum);
+            initializeQueues(ip, port);
             providerSocket = new ServerSocket(port);
 
             while (true) {
@@ -55,7 +56,7 @@ public class Broker implements Serializable {
                     boolean firstConnection = in.readBoolean(); // 1
                     if (firstConnection) {
                         matchedBroker = getBroker();
-                        if (matchedBroker != -1 || requestedTopic != 81)
+                        if (matchedBroker != -1 || requestedTopic == 81)
                             break;
                     } else if (requestedTopic != 81) {
                         matchedBroker = currentBroker;
@@ -65,7 +66,7 @@ public class Broker implements Serializable {
                 if (requestedTopic != 81 && currentBroker == matchedBroker) {
                     publisherMode = in.readBoolean(); // 4
                     if (publisherMode) {
-                        t = new ActionsForPublishers(connection, brokers, topics, getIp(), getPort(), out, in);
+                        t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in, queues);
                         t.start();
                         t.join();
                     }
@@ -81,6 +82,13 @@ public class Broker implements Serializable {
             }
         }
     }
+
+    /*private void pull(int topicCode) {
+        for (byte[] chunk: queues.get(topicCode) {
+            out.writeObject(chunk); // 8
+            out.flush();
+        }
+    }*/
 
     // Match each broker to address
     private HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts, int brokersNum) {
@@ -107,12 +115,12 @@ public class Broker implements Serializable {
                 }
             }
         }
-        for (int i = 0; i < brokersNum; i++) {
+        /*for (int i = 0; i < brokersNum; i++) {
             for (int t: registeredTopics[i]) {
                 if (t != 0)
                     System.out.println(i + " " + t);
             }
-        }
+        }*/
         return registeredTopics;
     }
 
@@ -142,6 +150,22 @@ public class Broker implements Serializable {
             e.printStackTrace();
         }
         return matchedBroker;
+    }
+
+    // Initialize Broker's queues. For each topic there is one queue
+    private void initializeQueues(String ip, int port) {
+        int currentBroker = -1;
+        for (int b: brokers.keySet()) {
+            if (Objects.equals(brokers.get(b).getIp(), ip) && brokers.get(b).getPort() == port) {
+                currentBroker = b;
+            }
+        }
+        for (int topicCode: topics[currentBroker]) {
+            Queue<byte[]> queue = new LinkedList<>();
+            if (topicCode != 0) {
+                queues.put(topicCode, queue);
+            }
+        }
     }
 
     public Broker(String ip, int port) {

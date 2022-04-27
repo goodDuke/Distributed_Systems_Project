@@ -1,13 +1,15 @@
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ReadFromFile {
     // ArrayLists containing all the currently available ports, ips and topics
-    private ArrayList<Integer> availablePorts = new ArrayList<Integer>();
-    private ArrayList<String> availableIps = new ArrayList<String>();
-    private ArrayList<String> availableTopics = new ArrayList<String>();
+    private ArrayList<Integer> availablePorts = new ArrayList<>();
+    private ArrayList<String> availableIps = new ArrayList<>();
+    private ArrayList<String> availableTopics = new ArrayList<>();
+    private ArrayList<String[]> topicsAndUsers = new ArrayList<>();
 
     public ArrayList<Integer> getPorts() {
         try {
@@ -85,8 +87,9 @@ public class ReadFromFile {
 
             // Save given topics in an ArrayList
             while (scanner.hasNextLine()) {
-                String topic = scanner.nextLine();
-                availableTopics.add(topic);
+                String line = scanner.nextLine();
+                topicsAndUsers.add(line.split("-"));
+                availableTopics.add(topicsAndUsers.get(topicsAndUsers.size()-1)[0]);
             }
         } catch (IOException ioException) {
             ioException.printStackTrace();

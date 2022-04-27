@@ -18,15 +18,6 @@ public class Publisher extends Thread {
             push(topicCode);
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                in.close();
-                out.close();
-                requestSocket.close();
-                System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
         }
     }
 

@@ -9,6 +9,7 @@ import java.util.Scanner;
 public class User {
     private String ip;
     private int port;
+    private int id;
     private Broker b;
     private Socket requestSocket;
     private ObjectOutputStream out;
@@ -17,16 +18,18 @@ public class User {
     private String topicString;
     private boolean firstConnection = true;
     boolean publisherMode = false;
+    private Thread p;
 
     public static void main(String args[]) throws InterruptedException {
         Broker b1 = new Broker("127.0.0.1", 1100);
         //Broker b2 = new Broker("127.0.0.1", 1200);
         //Broker b3 = new Broker("127.0.0.1", 1300);
 
-        // TODO set port and IP manually
+        // TODO set port, IP, id manually
         int port = 1200;
         String ip = "127.0.0.1";
-        new User(ip, port, b1).connect();
+        int id = 0;
+        new User(ip, port, id, b1).connect();
     }
 
     private void connect() {
@@ -37,8 +40,6 @@ public class User {
             System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
             while (true) {
                 topicCode = getTopic();
-                if (topicCode == 81)
-                    break;
 
                 out.writeBoolean(firstConnection); // 1
                 out.flush();
@@ -48,6 +49,10 @@ public class User {
 
                 // Get broker object which contains the requested topic
                 Broker matchedBroker = (Broker) in.readObject(); // 3
+
+                // If the user pressed "Q" when asked to enter the topic exit the loop
+                if (topicCode == 81)
+                    break;
 
                 if (matchedBroker == null)
                     System.out.println("The topic \"" + topicString + "\" doesn't exist.");
@@ -66,17 +71,31 @@ public class User {
 
                 out.writeBoolean(publisherMode); //4
                 out.flush();
-                if (publisherMode)
-                    new Publisher(b, topicCode, requestSocket, out, in).start();
+                if (publisherMode) {
+                    p = new Publisher(b, topicCode, requestSocket, out, in);
+                    p.start();
+                    p.join();
+                }
+                //new Consumer().start();
             }
-
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
         } catch (ClassNotFoundException | IOException e) {
             System.out.println("An error occurred while trying to connect to host: " + b.getIp() + " on port: " +
                     b.getPort() + ". Check the IP address and the port.");
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+        try {
+            in.close();
+            out.close();
+            requestSocket.close();
+            System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
         }
+    }
     }
 
     // Create a hash code for the given topic
@@ -106,9 +125,14 @@ public class User {
         }
     }
 
-    public User(String ip, int port, Broker b) {
+    public int getId() {
+        return id;
+    }
+
+    public User(String ip, int port, int id, Broker b) {
         this.ip = ip;
         this.port = port;
         this.b = b;
+        this.id = id;
     }
 }
