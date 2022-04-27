@@ -6,8 +6,8 @@ import java.util.Objects;
 import java.util.Queue;
 
 public class ActionsForPublishers extends Thread {
-    ObjectInputStream in;
-    ObjectOutputStream out;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
     private HashMap<Integer, Broker> brokers;
     private int[][] topics;
     // Create a queue for each topic. Find the queue in the HashMap by the topic code
@@ -15,18 +15,15 @@ public class ActionsForPublishers extends Thread {
     private String ip;
     private int port;
 
-    public ActionsForPublishers(Socket connection, HashMap<Integer, Broker> brokers,
-                                int[][] topics, String ip, int port) {
-        try {
-            this.brokers = brokers;
-            this.topics = topics;
-            this.ip = ip;
-            this.port = port;
-            out = new ObjectOutputStream(connection.getOutputStream());
-            in = new ObjectInputStream(connection.getInputStream());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public ActionsForPublishers(HashMap<Integer, Broker> brokers,
+                                int[][] topics, String ip, int port,
+                                ObjectOutputStream out, ObjectInputStream in) {
+        this.brokers = brokers;
+        this.topics = topics;
+        this.ip = ip;
+        this.port = port;
+        this.out = out;
+        this.in = in;
     }
 
     public void run() {
@@ -64,26 +61,41 @@ public class ActionsForPublishers extends Thread {
     // Collecting the chunks for a specific file and adding them to the correct queue
     private void receiveData() throws IOException, ClassNotFoundException {
         int topicCode = in.readInt(); // 5
-        int blockCount = in.readInt(); // 6
-        for (int i = 1; i <= blockCount; i++) {
-            byte[] chunk = (byte[]) in.readObject(); // 7
+        byte[] extension = (byte[]) in.readObject(); // 6
+        queues.get(topicCode).add(extension);
+        byte[] blockCount = (byte[]) in.readObject(); // 7
+        queues.get(topicCode).add(blockCount);
+
+        // Converting blockCount to integer
+        int chunkCount = 0;
+        for (byte b: blockCount)
+            chunkCount += b;
+
+        // Saving chunks in the corresponding queue
+        for (int i = 1; i <= chunkCount; i++) {
+            byte[] chunk = (byte[]) in.readObject(); // 8
             queues.get(topicCode).add(chunk);
         }
-        recreateFile(topicCode, blockCount);
+        recreateFile(topicCode, chunkCount);
     }
 
-    private void recreateFile(int topicCode, int blockCount) throws IOException {
-        String filepath = ".\\src\\recreated_files\\video.mp4";
+    private void recreateFile(int topicCode, int chunkCount) throws IOException {
+        String filepath = ".\\src\\recreated_files\\mnm.txt";
         File file = new File(filepath);
-
         OutputStream stream = new FileOutputStream(file);
-        byte[] completeFile = new byte[512 * 1024 * blockCount];
+        byte[] completeFile = new byte[512 * 1024 * chunkCount];
         int i = 0;
+        // Skip the first two chunks which contain the total chunkCount of
+        // the file and its extension
+        int skipChunks = 2;
         for (byte[] chunk: queues.get(topicCode)) {
-            for (byte b: chunk) {
-                completeFile[i] = b;
-                i++;
-            }
+            if (skipChunks == 0) {
+                for (byte b : chunk) {
+                    completeFile[i] = b;
+                    i++;
+                }
+            } else
+                skipChunks--;
         }
         stream.write(completeFile);
         stream.close();

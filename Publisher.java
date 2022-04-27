@@ -1,6 +1,7 @@
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Scanner;
 import java.io.*;
 import java.net.*;
@@ -14,15 +15,9 @@ public class Publisher extends Thread {
 
     public void run() {
         try {
-            out = new ObjectOutputStream(requestSocket.getOutputStream());
-            in = new ObjectInputStream(requestSocket.getInputStream());
             push(topicCode);
-        } catch (UnknownHostException unknownHost) {
-            System.err.println("You are trying to connect to an unknown host!");
-        } catch (IOException ioException) {
-            System.out.println("An error occurred while trying to connect to host: " + b.getIp() + " on port: " +
-                    b.getPort() + ". Check the IP address and the port.");
-            ioException.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             try {
                 in.close();
@@ -41,14 +36,45 @@ public class Publisher extends Thread {
         Scanner s = new Scanner(System.in);
         System.out.println("Enter the path of the file: ");
         //String path = s.nextLine();
-        String path = ".\\src\\data\\video.mp4";
+        String path = ".\\src\\data\\mnm.txt";
         File file = new File(path);
         byte[] data = fileToByteArray(file);
         ArrayList<byte[]> chunks = createChunks(data);
+        createInfoChunks(chunks.size());
         for (byte[] chunk: chunks) {
-            out.writeObject(chunk); // 7
+            out.writeObject(chunk); // 8
             out.flush();
         }
+    }
+
+    private void createInfoChunks(int blockCount) throws IOException {
+        Scanner s = new Scanner(System.in);
+        String fileExtension = null;
+        do {
+            System.out.println("Press 1 for '.txt' file\n" +
+                    "Press 2 for '.jpg' file\n" +
+                    "Press 3 for '.mp4' file");
+            String fileExtensionNum = s.nextLine();
+            switch (fileExtensionNum) {
+                case "1":
+                    fileExtension = ".txt";
+                    break;
+                case "2":
+                    fileExtension = ".jpg";
+                    break;
+                case "3":
+                    fileExtension = ".mp4";
+                    break;
+                default:
+                    System.out.println("Wrong number entered. Please try again.");
+            }
+        } while (fileExtension == null);
+        byte[] extension = fileExtension.getBytes(StandardCharsets.UTF_8);
+        out.writeObject(extension); // 6
+        out.flush();
+        byte[] chunkCount = ByteBuffer.allocate(Integer.BYTES).putInt(blockCount).array();
+        out.writeObject(chunkCount); // 7
+        out.flush();
     }
 
     // Convert file to byte array
@@ -65,8 +91,6 @@ public class Publisher extends Thread {
         int blockSize = 512 * 1024;
         ArrayList<byte[]> listOfChunks = new ArrayList<>();
         int blockCount = (data.length + blockSize - 1) / blockSize;
-        out.writeInt(blockCount); // 6
-        out.flush();
         byte[] chunk;
         int start;
         for (int i = 1; i < blockCount; i++) {
@@ -86,9 +110,11 @@ public class Publisher extends Thread {
         return listOfChunks;
     }
 
-    Publisher(Broker b, int topicCode, Socket requestSocket) {
+    Publisher(Broker b, int topicCode, Socket requestSocket, ObjectOutputStream out, ObjectInputStream in) {
         this.b = b;
         this.topicCode = topicCode;
         this.requestSocket = requestSocket;
+        this.out = out;
+        this.in = in;
     }
 }

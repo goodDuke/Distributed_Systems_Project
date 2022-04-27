@@ -4,16 +4,20 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Broker implements Serializable {
-    ObjectInputStream in;
-    ObjectOutputStream out;
+    private int requestedTopic;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
     private static HashMap<Integer, Broker> brokers = new HashMap<Integer, Broker>();
     private static int[][] topics;
-    private String ip;
-    private int port;
+    private static String ip;
+    private static int port;
     private ServerSocket providerSocket;
     private Socket connection = null;
+    private boolean publisherMode;
+    private Thread t;
+    //private static int currentBroker;
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
 
         // Read ports, Ips, topics from txt files
         ReadFromFile fileReader = new ReadFromFile();
@@ -22,7 +26,7 @@ public class Broker implements Serializable {
         ArrayList<String> availableTopics = fileReader.getTopics();
         // TODO set the number of brokers. It must match the number of ports and IPs in the txts.
         int brokersNum = 3;
-        brokers = matchBrokerToAddress(availableIps, availablePorts, brokersNum);
+        brokers = matchBrokerToAddress(availableIps, availablePorts);
         topics = matchTopicToBroker(availableTopics, brokersNum);
 
         // TODO set port and IP manually
@@ -44,15 +48,27 @@ public class Broker implements Serializable {
                 in = new ObjectInputStream(connection.getInputStream());
                 System.out.println("Connected on port: " + port);
                 System.out.println("Connected user: " + connection.getInetAddress().getHostName());
-
                 // Check which broker contains the requested topic only if the
                 // current broker is the first one the publisher connected to
-                boolean firstConnection = in.readBoolean(); // 1
-
-                if (firstConnection)
-                    getBroker();
+                int matchedBroker;
+                while (true) {
+                    boolean firstConnection = in.readBoolean(); // 1
+                    if (firstConnection) {
+                        matchedBroker = getBroker();
+                        if (matchedBroker != -1 || requestedTopic == 81)
+                            break;
+                    }
+                }
+                if (requestedTopic != 81) {
+                    publisherMode = in.readBoolean(); // 4
+                    if (publisherMode) {
+                        t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in);
+                        t.start();
+                        t.join();
+                    }
+                }
             }
-        } catch (IOException ioException) {
+        } catch (IOException | InterruptedException ioException) {
             ioException.printStackTrace();
         } finally {
             try {
@@ -64,11 +80,14 @@ public class Broker implements Serializable {
     }
 
     // Match each broker to address
-    private static HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts, int brokersNum) {
+    private static HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts) {
         int i = 0;
         HashMap<Integer, Broker> brokerAddresses = new HashMap<Integer, Broker>();
         for (int j = 0; j < availablePorts.size(); j++) {
+            System.out.println( availablePorts.get(j));
             brokerAddresses.put(i, new Broker(availableIps.get(j), availablePorts.get(j)));
+            /*if (availableIps.get(j).equals(ip) && availablePorts.get(j) == port)
+                currentBroker = i;*/
             i++;
         }
         return brokerAddresses;
@@ -98,10 +117,10 @@ public class Broker implements Serializable {
     }
 
     // Find the broker that contains the requested topic
-    private void getBroker() {
+    private int getBroker() {
         int matchedBroker = -1;
         try {
-            int requestedTopic = in.readInt(); // 2
+            requestedTopic = in.readInt(); // 2
             for (int i = 0; i < brokers.size(); i++) {
                 for (int topic : topics[i]) {
                     if (requestedTopic == topic) {
@@ -115,17 +134,14 @@ public class Broker implements Serializable {
                     break;
                 }
             }
-            if (matchedBroker == 0) {
+            if (matchedBroker == -1) {
                 out.writeObject(null); // 3
                 out.flush();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public void startActionsForPublishers(Socket socket) {
-        new ActionsForPublishers(socket, brokers, topics, getIp(), getPort()).start();
+        return matchedBroker;
     }
 
     public Broker(String ip, int port) {

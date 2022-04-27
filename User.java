@@ -18,10 +18,10 @@ public class User {
     private boolean firstConnection = true;
     boolean publisherMode = false;
 
-    public static void main(String args[]) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException {
         Broker b1 = new Broker("127.0.0.1", 1100);
-        Broker b2 = new Broker("127.0.0.1", 1200);
-        Broker b3 = new Broker("127.0.0.1", 1300);
+        //Broker b2 = new Broker("127.0.0.1", 1200);
+        //Broker b3 = new Broker("127.0.0.1", 1300);
 
         // TODO set port and IP manually
         int port = 1200;
@@ -35,38 +35,48 @@ public class User {
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
             System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
-            topicCode = getTopic();
+            while (true) {
+                topicCode = getTopic();
 
-            out.writeBoolean(firstConnection); // 1
-            out.flush();
+                out.writeBoolean(firstConnection); // 1
+                out.flush();
 
-            out.writeInt(topicCode); // 2
-            out.flush();
+                out.writeInt(topicCode); // 2
+                out.flush();
 
-            // Get broker object which contains the requested topic
-            Broker matchedBroker = (Broker) in.readObject(); // 3
+                // Get broker object which contains the requested topic
+                Broker matchedBroker = (Broker) in.readObject(); // 3
 
-            if (matchedBroker == null)
-                System.out.println("The topic \"" + topicString + "\" doesn't exist.");
-            else
-                connectToMatchedBroker(matchedBroker);
+                // If the User entered "Q" when asked for the topic exit the loop
+                if (topicCode == 81)
+                    break;
 
-            Scanner s = new Scanner(System.in);
-            System.out.println("Press p to enter publisher mode: ");
-            String publisherInput = s.nextLine();
-            if (publisherInput.equals("p"))
-                publisherMode = true;
-
-            if (publisherMode) {
-                b.startActionsForPublishers(requestSocket);
-                new Publisher(b, topicCode, requestSocket).start();
+                if (matchedBroker == null)
+                    System.out.println("The topic \"" + topicString + "\" doesn't exist.");
+                else {
+                    connectToMatchedBroker(matchedBroker);
+                    break;
+                }
             }
 
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+            if (topicCode != 81) {
+                Scanner s = new Scanner(System.in);
+                System.out.println("Press p to enter publisher mode: ");
+                String publisherInput = s.nextLine();
+                if (publisherInput.equals("p"))
+                    publisherMode = true;
+
+                out.writeBoolean(publisherMode); //4
+                out.flush();
+                if (publisherMode)
+                    new Publisher(b, topicCode, requestSocket, out, in).start();
+            }
+
+        } catch (UnknownHostException unknownHost) {
+            System.err.println("You are trying to connect to an unknown host!");
+        } catch (ClassNotFoundException | IOException e) {
+            System.out.println("An error occurred while trying to connect to host: " + b.getIp() + " on port: " +
+                    b.getPort() + ". Check the IP address and the port.");
             e.printStackTrace();
         }
     }
@@ -74,11 +84,9 @@ public class User {
     // Create a hash code for the given topic
     private int getTopic() {
         Scanner s = new Scanner(System.in);
-        System.out.println("Enter the topic for port " + b.getPort() + ": ");
+        System.out.println("Enter the topic for port " + b.getPort() + " or press 'Q' to quit connection: ");
         topicString = s.nextLine();
-
-        int code = topicString.hashCode();
-        return code;
+        return topicString.hashCode();
     }
 
     // Check if the current broker is the correct one
