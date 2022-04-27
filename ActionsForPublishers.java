@@ -15,7 +15,7 @@ public class ActionsForPublishers extends Thread {
     private String ip;
     private int port;
 
-    public ActionsForPublishers(HashMap<Integer, Broker> brokers,
+    public ActionsForPublishers(Socket connection, HashMap<Integer, Broker> brokers,
                                 int[][] topics, String ip, int port,
                                 ObjectOutputStream out, ObjectInputStream in) {
         this.brokers = brokers;
@@ -85,8 +85,7 @@ public class ActionsForPublishers extends Thread {
         OutputStream stream = new FileOutputStream(file);
         byte[] completeFile = new byte[512 * 1024 * chunkCount];
         int i = 0;
-        // Skip the first two chunks which contain the total chunkCount of
-        // the file and its extension
+        // Skip the first to chunks which contain the total chunkCount of the file and its
         int skipChunks = 2;
         for (byte[] chunk: queues.get(topicCode)) {
             if (skipChunks == 0) {

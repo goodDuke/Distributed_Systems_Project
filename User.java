@@ -18,7 +18,7 @@ public class User {
     private boolean firstConnection = true;
     boolean publisherMode = false;
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String args[]) throws InterruptedException {
         Broker b1 = new Broker("127.0.0.1", 1100);
         //Broker b2 = new Broker("127.0.0.1", 1200);
         //Broker b3 = new Broker("127.0.0.1", 1300);
@@ -37,6 +37,8 @@ public class User {
             System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
             while (true) {
                 topicCode = getTopic();
+                if (topicCode == 81)
+                    break;
 
                 out.writeBoolean(firstConnection); // 1
                 out.flush();
@@ -46,10 +48,6 @@ public class User {
 
                 // Get broker object which contains the requested topic
                 Broker matchedBroker = (Broker) in.readObject(); // 3
-
-                // If the User entered "Q" when asked for the topic exit the loop
-                if (topicCode == 81)
-                    break;
 
                 if (matchedBroker == null)
                     System.out.println("The topic \"" + topicString + "\" doesn't exist.");

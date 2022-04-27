@@ -9,26 +9,15 @@ public class Broker implements Serializable {
     private ObjectOutputStream out;
     private static HashMap<Integer, Broker> brokers = new HashMap<Integer, Broker>();
     private static int[][] topics;
-    private static String ip;
-    private static int port;
+    private String ip;
+    private int port;
     private ServerSocket providerSocket;
     private Socket connection = null;
     private boolean publisherMode;
     private Thread t;
-    //private static int currentBroker;
+    private int currentBroker;
 
     public static void main(String[] args) {
-
-        // Read ports, Ips, topics from txt files
-        ReadFromFile fileReader = new ReadFromFile();
-        ArrayList<Integer> availablePorts = fileReader.getPorts();
-        ArrayList<String> availableIps = fileReader.getIps();
-        ArrayList<String> availableTopics = fileReader.getTopics();
-        // TODO set the number of brokers. It must match the number of ports and IPs in the txts.
-        int brokersNum = 3;
-        brokers = matchBrokerToAddress(availableIps, availablePorts);
-        topics = matchTopicToBroker(availableTopics, brokersNum);
-
         // TODO set port and IP manually
         int port = 1100;
         String ip = "127.0.0.1";
@@ -38,6 +27,17 @@ public class Broker implements Serializable {
     // The broker will wait on the given port for a user to connect
     private void acceptConnection() {
         try {
+            // Read ports, Ips, topics from txt files
+            ReadFromFile fileReader = new ReadFromFile();
+            ArrayList<Integer> availablePorts = fileReader.getPorts();
+            ArrayList<String> availableIps = fileReader.getIps();
+            ArrayList<String> availableTopics = fileReader.getTopics();
+
+            // TODO set the number of brokers. It must match the number of ports and IPs in the txts.
+            int brokersNum = 3;
+
+            brokers = matchBrokerToAddress(availableIps, availablePorts, brokersNum);
+            topics = matchTopicToBroker(availableTopics, brokersNum);
             providerSocket = new ServerSocket(port);
 
             while (true) {
@@ -55,14 +55,17 @@ public class Broker implements Serializable {
                     boolean firstConnection = in.readBoolean(); // 1
                     if (firstConnection) {
                         matchedBroker = getBroker();
-                        if (matchedBroker != -1 || requestedTopic == 81)
+                        if (matchedBroker != -1 || requestedTopic != 81)
                             break;
+                    } else if (requestedTopic != 81) {
+                        matchedBroker = currentBroker;
+                        break;
                     }
                 }
-                if (requestedTopic != 81) {
+                if (requestedTopic != 81 && currentBroker == matchedBroker) {
                     publisherMode = in.readBoolean(); // 4
                     if (publisherMode) {
-                        t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in);
+                        t = new ActionsForPublishers(connection, brokers, topics, getIp(), getPort(), out, in);
                         t.start();
                         t.join();
                     }
@@ -80,15 +83,12 @@ public class Broker implements Serializable {
     }
 
     // Match each broker to address
-    private static HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts) {
-        int i = 0;
+    private HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts, int brokersNum) {
         HashMap<Integer, Broker> brokerAddresses = new HashMap<Integer, Broker>();
-        for (int j = 0; j < availablePorts.size(); j++) {
-            System.out.println( availablePorts.get(j));
-            brokerAddresses.put(i, new Broker(availableIps.get(j), availablePorts.get(j)));
-            /*if (availableIps.get(j).equals(ip) && availablePorts.get(j) == port)
-                currentBroker = i;*/
-            i++;
+        for (int i = 0; i < availablePorts.size(); i++) {
+            brokerAddresses.put(i, new Broker(availableIps.get(i), availablePorts.get(i)));
+            if (availableIps.get(i).equals(ip) && availablePorts.get(i) == port)
+                currentBroker = i;
         }
         return brokerAddresses;
     }
