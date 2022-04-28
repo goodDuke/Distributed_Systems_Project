@@ -19,8 +19,9 @@ public class User {
     private boolean firstConnection = true;
     boolean publisherMode = false;
     private Thread p;
+    private Thread c;
 
-    public static void main(String args[]) throws InterruptedException {
+    public static void main(String args[]) {
         Broker b1 = new Broker("127.0.0.1", 1100);
         //Broker b2 = new Broker("127.0.0.1", 1200);
         //Broker b3 = new Broker("127.0.0.1", 1300);
@@ -63,9 +64,11 @@ public class User {
                     // Get broker object which contains the requested topic
                     Broker matchedBroker = (Broker) in.readObject(); // 6
 
-                    // If the user pressed "Q" when asked to enter the topic exit the loop
-                    if (topicCode == 81)
+                    // If the user pressed "Q" when asked to enter the topic disconnect
+                    if (topicCode == 81) {
+                        disconnect = true;
                         break;
+                    }
 
                     if (matchedBroker == null)
                         System.out.println("The topic \"" + topicString + "\" doesn't exist.");
@@ -76,16 +79,19 @@ public class User {
                 }
                 while(true) {
                     if (topicCode != 81) {
-                        //new Consumer().start();
+                        c = new Consumer(b, topicCode, requestSocket, out, in);
+                        c.start();
+                        c.join();
 
                         publisherMode = false;
                         Scanner s = new Scanner(System.in);
-                        System.out.println("Press 'P' to enter publisher mode: ");
+                        System.out.println("Press 'P' to enter publisher mode\n" +
+                                "Press anything else if you don't want to enter publisher mode:");
                         String publisherInput = s.nextLine();
                         if (publisherInput.equals("P"))
                             publisherMode = true;
 
-                        out.writeBoolean(publisherMode); // 7
+                        out.writeBoolean(publisherMode); // 9
                         out.flush();
                         if (publisherMode) {
                             p = new Publisher(b, topicCode, requestSocket, out, in);
@@ -101,22 +107,23 @@ public class User {
                             case "T":
                                 firstConnection = true;
                                 newTopic = true;
-                                out.writeObject(input);
+                                out.writeObject(input); // 13
                                 out.flush();
                                 break;
                             case "Q":
-                                out.writeObject(input);
+                                out.writeObject(input); // 12
                                 out.flush();
                                 disconnect = true;
                                 break;
                             default:
-                                out.writeObject(input);
+                                out.writeObject(input); // 12
                                 out.flush();
-                                System.out.println("Waiting for new messages.");
+                                System.out.println("Checking for new messages.");
                         }
                         if (newTopic || disconnect)
                             break;
-                    }
+                    } else
+                        break;
                 }
             }
         } catch (UnknownHostException unknownHost) {
@@ -142,14 +149,14 @@ public class User {
     // Create a hash code for the given topic
     private int getTopic() {
         Scanner s = new Scanner(System.in);
-        System.out.println("Enter the topic for port " + b.getPort() + " or press 'Q' to quit connection: ");
+        System.out.println("Enter the topic for port " + b.getPort() + " or press 'Q' to disconnect: ");
         topicString = s.nextLine();
         return topicString.hashCode();
     }
 
     // Check if the current broker is the correct one
     // Otherwise close the current connection and connect to the right one
-    private void connectToMatchedBroker(Broker matchedBroker) throws IOException{
+    private void connectToMatchedBroker(Broker matchedBroker) throws IOException {
         if (!Objects.equals(b.getIp(), matchedBroker.getIp()) || !Objects.equals(b.getPort(), matchedBroker.getPort())) {
             in.close();
             out.close();
@@ -161,7 +168,7 @@ public class User {
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
             firstConnection = false;
-            out.writeInt(id);
+            out.writeInt(id); // 1
             out.flush();
             out.writeBoolean(firstConnection); // 2
             out.flush();
@@ -175,7 +182,6 @@ public class User {
         this.id = id;
     }
 }
-
 
 // Αντί να κρατάμε για κάθε user ποια μηνύματα έχει διαβάσει μπορούμε να του στέλνουμε
 // αυτόματα τα 5 τελευταία και να τον ρωτάμε αν θέλει να δει όλα τα υπόλοιπα

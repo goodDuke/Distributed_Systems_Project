@@ -35,13 +35,12 @@ public class ActionsForPublishers extends Thread {
         }
     }
 
-
     // Collecting the chunks for a specific file and adding them to the correct queue
     private void receiveData() throws IOException, ClassNotFoundException {
-        int topicCode = in.readInt(); // 8
-        byte[] extension = (byte[]) in.readObject(); // 9
+        int topicCode = in.readInt(); // 10
+        byte[] extension = (byte[]) in.readObject(); // 11
         queues.get(topicCode).add(extension);
-        byte[] blockCount = (byte[]) in.readObject(); // 10
+        byte[] blockCount = (byte[]) in.readObject(); // 12
         queues.get(topicCode).add(blockCount);
 
         // Converting blockCount to integer
@@ -51,7 +50,7 @@ public class ActionsForPublishers extends Thread {
 
         // Saving chunks in the corresponding queue
         for (int i = 1; i <= chunkCount; i++) {
-            byte[] chunk = (byte[]) in.readObject(); // 11
+            byte[] chunk = (byte[]) in.readObject(); // 13
             queues.get(topicCode).add(chunk);
         }
     }

@@ -21,7 +21,7 @@ public class Broker implements Serializable {
 
     public static void main(String[] args) {
         // TODO set port and IP manually
-        int port = 1100;
+        int port = 1200;
         String ip = "127.0.0.1";
         // TODO create as many brokers as users
         new Broker(ip, port).acceptConnection();
@@ -72,17 +72,22 @@ public class Broker implements Serializable {
                     }
                     while(true) {
                         if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                            publisherMode = in.readBoolean(); // 7
+                            System.out.println(requestedTopic);
+                            pull(requestedTopic);
+                            publisherMode = in.readBoolean(); // 9
                             if (publisherMode) {
                                 t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in, queues);
                                 t.start();
                                 t.join();
                             }
-                        }
-                        String userInput = (String) in.readObject();
-                        if (userInput.equals("T") || userInput.equals("Q")) {
-                            if (userInput.equals("Q"))
-                                disconnect = true;
+                            String userInput = (String) in.readObject(); // 13
+                            if (userInput.equals("T") || userInput.equals("Q")) {
+                                if (userInput.equals("Q"))
+                                    disconnect = true;
+                                break;
+                            }
+                        } else if (currentBroker != matchedBroker) {
+                            disconnect = true;
                             break;
                         }
                     }
@@ -99,12 +104,15 @@ public class Broker implements Serializable {
         }
     }
 
-    /*private void pull(int topicCode) {
-        for (byte[] chunk: queues.get(topicCode) {
+    private void pull(int topicCode) throws IOException {
+        boolean isEmpty = queues.get(topicCode).isEmpty();
+        out.writeBoolean(isEmpty); // 7
+        out.flush();
+        for (byte[] chunk: queues.get(topicCode)) {
             out.writeObject(chunk); // 8
             out.flush();
         }
-    }*/
+    }
 
     // Match each broker to address
     private HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts, int brokersNum) {

@@ -87,7 +87,7 @@ public class ReadFromFile {
             }
 
             // Save given topics in an ArrayList and the topics
-            // with the registered users in a different array
+            // with the registered users in a different ArrayList
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 topicsAndUsers.add(line.split("-"));

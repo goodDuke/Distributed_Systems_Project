@@ -1,6 +1,7 @@
-/*
 import java.io.*;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class Consumer extends Thread{
     private Broker b;
@@ -8,21 +9,38 @@ public class Consumer extends Thread{
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private int topicCode;
+    private Queue<byte[]> queue = new LinkedList<>();
 
     public void run() {
         try {
-            pull(topicCode);
-        } catch (IOException e) {
+            receiveData();
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                in.close();
-                out.close();
-                requestSocket.close();
-                System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
+        }
+    }
+
+    // Collecting the chunks for a specific file and adding them to the correct queue
+    private void receiveData() throws IOException, ClassNotFoundException {
+        boolean isEmpty = in.readBoolean(); // 7
+        if (!isEmpty) {
+            System.out.println("Fetching new messages!");
+            byte[] extension = (byte[]) in.readObject(); // 8.1
+            queue.add(extension);
+            byte[] blockCount = (byte[]) in.readObject(); // 8.2
+            queue.add(blockCount);
+
+            // Converting blockCount to integer
+            int chunkCount = 0;
+            for (byte b : blockCount)
+                chunkCount += b;
+
+            // Saving chunks in the corresponding queue
+            for (int i = 1; i <= chunkCount; i++) {
+
+                byte[] chunk = (byte[]) in.readObject(); // 8.3
+                queue.add(chunk);
             }
+            recreateFile(topicCode, chunkCount);
         }
     }
 
@@ -34,7 +52,7 @@ public class Consumer extends Thread{
         int i = 0;
         // Skip the first to chunks which contain the total chunkCount of the file and its
         int skipChunks = 2;
-        for (byte[] chunk: queues.get(topicCode)) {
+        for (byte[] chunk: queue) {
             if (skipChunks == 0) {
                 for (byte b : chunk) {
                     completeFile[i] = b;
@@ -55,4 +73,4 @@ public class Consumer extends Thread{
         this.in = in;
     }
 }
-*/
+
