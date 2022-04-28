@@ -27,7 +27,7 @@ public class User {
         //Broker b3 = new Broker("127.0.0.1", 1300);
 
         // TODO set port, IP, id manually
-        int port = 1200;
+        int port = 2200;
         String ip = "127.0.0.1";
         int id = 0;
         new User(ip, port, id, b1).connect();
@@ -85,7 +85,7 @@ public class User {
 
                         publisherMode = false;
                         Scanner s = new Scanner(System.in);
-                        System.out.println("Press 'P' to enter publisher mode\n" +
+                        System.out.println("Press 'P' to enter publisher mode.\n" +
                                 "Press anything else if you don't want to enter publisher mode:");
                         String publisherInput = s.nextLine();
                         if (publisherInput.equals("P"))
@@ -171,6 +171,8 @@ public class User {
             out.writeInt(id); // 1
             out.flush();
             out.writeBoolean(firstConnection); // 2
+            out.flush();
+            out.writeInt(topicCode); // 3
             out.flush();
         }
     }

@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public class Broker implements Serializable {
+public class Broker extends Thread implements Serializable {
     private int requestedTopic;
     private ObjectInputStream in;
     private ObjectOutputStream out;
@@ -23,7 +23,6 @@ public class Broker implements Serializable {
         // TODO set port and IP manually
         int port = 1200;
         String ip = "127.0.0.1";
-        // TODO create as many brokers as users
         new Broker(ip, port).acceptConnection();
     }
 
@@ -66,14 +65,14 @@ public class Broker implements Serializable {
                             if (matchedBroker != -1 || requestedTopic == 81)
                                 break;
                         } else if (requestedTopic != 81) {
+                            requestedTopic = in.readInt(); // 3
                             matchedBroker = currentBroker;
                             break;
                         }
                     }
                     while(true) {
                         if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                            System.out.println(requestedTopic);
-                            pull(requestedTopic);
+                            pull();
                             publisherMode = in.readBoolean(); // 9
                             if (publisherMode) {
                                 t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in, queues);
@@ -104,11 +103,11 @@ public class Broker implements Serializable {
         }
     }
 
-    private void pull(int topicCode) throws IOException {
-        boolean isEmpty = queues.get(topicCode).isEmpty();
+    private void pull() throws IOException {
+        boolean isEmpty = queues.get(requestedTopic).isEmpty();
         out.writeBoolean(isEmpty); // 7
         out.flush();
-        for (byte[] chunk: queues.get(topicCode)) {
+        for (byte[] chunk: queues.get(requestedTopic)) {
             out.writeObject(chunk); // 8
             out.flush();
         }
