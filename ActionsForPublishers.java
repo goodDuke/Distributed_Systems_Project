@@ -32,13 +32,6 @@ public class ActionsForPublishers extends Thread {
             receiveData();
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-        } finally {
-            try {
-                in.close();
-                out.close();
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
         }
     }
 

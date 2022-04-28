@@ -23,6 +23,7 @@ public class Broker implements Serializable {
         // TODO set port and IP manually
         int port = 1100;
         String ip = "127.0.0.1";
+        // TODO create as many brokers as users
         new Broker(ip, port).acceptConnection();
     }
 
@@ -52,31 +53,42 @@ public class Broker implements Serializable {
                 in = new ObjectInputStream(connection.getInputStream());
                 System.out.println("Connected on port: " + port);
                 System.out.println("Connected user: " + connection.getInetAddress().getHostName());
-                // Check which broker contains the requested topic only if the
-                // current broker is the first one the publisher connected to
-                int matchedBroker;
-                while (true) {
-                    currentUser = in.readInt(); // 1
-                    boolean firstConnection = in.readBoolean(); // 2
-                    if (firstConnection) {
-                        matchedBroker = getBroker();
-                        if (matchedBroker != -1 || requestedTopic == 81)
+                boolean disconnect = false;
+                while(!disconnect) {
+                    // Check which broker contains the requested topic only if the
+                    // current broker is the first one the publisher connected to
+                    int matchedBroker;
+                    while (true) {
+                        currentUser = in.readInt(); // 1
+                        boolean firstConnection = in.readBoolean(); // 2
+                        if (firstConnection) {
+                            matchedBroker = getBroker();
+                            if (matchedBroker != -1 || requestedTopic == 81)
+                                break;
+                        } else if (requestedTopic != 81) {
+                            matchedBroker = currentBroker;
                             break;
-                    } else if (requestedTopic != 81) {
-                        matchedBroker = currentBroker;
-                        break;
+                        }
                     }
-                }
-                if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                    publisherMode = in.readBoolean(); // 7
-                    if (publisherMode) {
-                        t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in, queues);
-                        t.start();
-                        t.join();
+                    while(true) {
+                        if (requestedTopic != 81 && currentBroker == matchedBroker) {
+                            publisherMode = in.readBoolean(); // 7
+                            if (publisherMode) {
+                                t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in, queues);
+                                t.start();
+                                t.join();
+                            }
+                        }
+                        String userInput = (String) in.readObject();
+                        if (userInput.equals("T") || userInput.equals("Q")) {
+                            if (userInput.equals("Q"))
+                                disconnect = true;
+                            break;
+                        }
                     }
                 }
             }
-        } catch (IOException | InterruptedException ioException) {
+        } catch (IOException | InterruptedException | ClassNotFoundException ioException) {
             ioException.printStackTrace();
         } finally {
             try {
@@ -172,9 +184,12 @@ public class Broker implements Serializable {
         for (String[] x: topicsAndUsers) {
              if (x[0].equals(topicString)) {
                  topicExists = true;
-                 for (String id: x[1].split(",")) {
-                     if (currentUser == Integer.parseInt(id))
-                         return true;
+                 // If there are users registered in the topic
+                 if (x.length == 2) {
+                     for (String id : x[1].split(",")) {
+                         if (currentUser == Integer.parseInt(id))
+                             return true;
+                     }
                  }
              }
         }

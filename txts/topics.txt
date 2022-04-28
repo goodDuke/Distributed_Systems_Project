@@ -1,5 +1,5 @@
 xontros-0,1
 sifu-0,1
-antigrafina
-gorgonetta
-gkantemis
+antigrafina-
+gorgonetta-
+gkantemis-
