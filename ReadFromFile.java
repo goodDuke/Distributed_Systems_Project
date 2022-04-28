@@ -5,7 +5,8 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ReadFromFile {
-    // ArrayLists containing all the currently available ports, ips and topics
+    // ArrayLists containing all the currently available ports, ips,
+    // topics and registered users for each topic
     private ArrayList<Integer> availablePorts = new ArrayList<>();
     private ArrayList<String> availableIps = new ArrayList<>();
     private ArrayList<String> availableTopics = new ArrayList<>();
@@ -85,7 +86,8 @@ public class ReadFromFile {
                 System.exit(-1);
             }
 
-            // Save given topics in an ArrayList
+            // Save given topics in an ArrayList and the topics
+            // with the registered users in a different array
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 topicsAndUsers.add(line.split("-"));
@@ -95,5 +97,9 @@ public class ReadFromFile {
             ioException.printStackTrace();
         }
         return availableTopics;
+    }
+
+    public ArrayList<String[]> getTopicsAndUsers() {
+        return topicsAndUsers;
     }
 }

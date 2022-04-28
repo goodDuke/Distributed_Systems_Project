@@ -16,6 +16,8 @@ public class Broker implements Serializable {
     private Thread t;
     private int currentBroker;
     private HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
+    private int currentUser;
+    private ArrayList<String[]> topicsAndUsers;
 
     public static void main(String[] args) {
         // TODO set port and IP manually
@@ -32,6 +34,7 @@ public class Broker implements Serializable {
             ArrayList<Integer> availablePorts = fileReader.getPorts();
             ArrayList<String> availableIps = fileReader.getIps();
             ArrayList<String> availableTopics = fileReader.getTopics();
+            topicsAndUsers = fileReader.getTopicsAndUsers();
 
             // TODO set the number of brokers. It must match the number of ports and IPs in the txts.
             int brokersNum = 3;
@@ -53,7 +56,8 @@ public class Broker implements Serializable {
                 // current broker is the first one the publisher connected to
                 int matchedBroker;
                 while (true) {
-                    boolean firstConnection = in.readBoolean(); // 1
+                    currentUser = in.readInt(); // 1
+                    boolean firstConnection = in.readBoolean(); // 2
                     if (firstConnection) {
                         matchedBroker = getBroker();
                         if (matchedBroker != -1 || requestedTopic == 81)
@@ -64,7 +68,7 @@ public class Broker implements Serializable {
                     }
                 }
                 if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                    publisherMode = in.readBoolean(); // 4
+                    publisherMode = in.readBoolean(); // 7
                     if (publisherMode) {
                         t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in, queues);
                         t.start();
@@ -128,28 +132,56 @@ public class Broker implements Serializable {
     private int getBroker() {
         int matchedBroker = -1;
         try {
-            requestedTopic = in.readInt(); // 2
-            for (int i = 0; i < brokers.size(); i++) {
-                for (int topic : topics[i]) {
-                    if (requestedTopic == topic) {
-                        matchedBroker = i;
+            String topicString = (String) in.readObject(); // 3
+            requestedTopic = in.readInt(); // 4
+            boolean registeredUser = checkUser(topicString);
+            out.writeBoolean(registeredUser); // 5
+            out.flush();
+            // If the user is registered to use the requested topic search for the corresponding broker
+            if (registeredUser) {
+                for (int i = 0; i < brokers.size(); i++) {
+                    for (int topic : topics[i]) {
+                        if (requestedTopic == topic) {
+                            matchedBroker = i;
+                            break;
+                        }
+                    }
+                    if (matchedBroker != -1) {
+                        out.writeObject(brokers.get(matchedBroker)); // 6
+                        out.flush();
                         break;
                     }
                 }
-                if (matchedBroker != -1) {
-                    out.writeObject(brokers.get(matchedBroker)); // 3
+                if (matchedBroker == -1) {
+                    out.writeObject(null); // 6
                     out.flush();
-                    break;
                 }
             }
-            if (matchedBroker == -1) {
-                out.writeObject(null); // 3
-                out.flush();
-            }
-        } catch (IOException e) {
+
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         return matchedBroker;
+    }
+
+    // Check whether the user requesting the topic is registered to use it
+    private boolean checkUser(String topicString) {
+        // Return false only if the topic exists and the user isn't registered to use it
+        // Return true otherwise
+        boolean topicExists = false;
+        for (String[] x: topicsAndUsers) {
+             if (x[0].equals(topicString)) {
+                 topicExists = true;
+                 for (String id: x[1].split(",")) {
+                     if (currentUser == Integer.parseInt(id))
+                         return true;
+                 }
+             }
+        }
+        if (topicExists)
+            return false;
+        else
+            return true;
     }
 
     // Initialize Broker's queues. For each topic there is one queue

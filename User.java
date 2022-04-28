@@ -40,15 +40,26 @@ public class User {
             System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
             while (true) {
                 topicCode = getTopic();
-
-                out.writeBoolean(firstConnection); // 1
+                out.writeInt(id); // 1
                 out.flush();
 
-                out.writeInt(topicCode); // 2
+                out.writeBoolean(firstConnection); // 2
                 out.flush();
 
+                out.writeObject(topicString); // 3
+                out.flush();
+
+                out.writeInt(topicCode); // 4
+                out.flush();
+
+                boolean registeredUser = in.readBoolean(); // 5
+
+                if (!registeredUser) {
+                    System.out.println("You are unable to access the requested topic.");
+                    continue;
+                }
                 // Get broker object which contains the requested topic
-                Broker matchedBroker = (Broker) in.readObject(); // 3
+                Broker matchedBroker = (Broker) in.readObject(); // 6
 
                 // If the user pressed "Q" when asked to enter the topic exit the loop
                 if (topicCode == 81)
@@ -69,7 +80,7 @@ public class User {
                 if (publisherInput.equals("p"))
                     publisherMode = true;
 
-                out.writeBoolean(publisherMode); //4
+                out.writeBoolean(publisherMode); // 7
                 out.flush();
                 if (publisherMode) {
                     p = new Publisher(b, topicCode, requestSocket, out, in);
@@ -120,13 +131,11 @@ public class User {
             out = new ObjectOutputStream(requestSocket.getOutputStream());
             in = new ObjectInputStream(requestSocket.getInputStream());
             firstConnection = false;
-            out.writeBoolean(firstConnection); // 1
+            out.writeInt(id);
+            out.flush();
+            out.writeBoolean(firstConnection); // 2
             out.flush();
         }
-    }
-
-    public int getId() {
-        return id;
     }
 
     public User(String ip, int port, int id, Broker b) {

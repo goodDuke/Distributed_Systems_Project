@@ -22,7 +22,7 @@ public class Publisher extends Thread {
     }
 
     private void push(int topicCode) throws IOException {
-        out.writeInt(topicCode); // 5
+        out.writeInt(topicCode); // 8
         out.flush();
         Scanner s = new Scanner(System.in);
         System.out.println("Enter the path of the file: ");
@@ -33,7 +33,7 @@ public class Publisher extends Thread {
         ArrayList<byte[]> chunks = createChunks(data);
         createInfoChunks(chunks.size());
         for (byte[] chunk: chunks) {
-            out.writeObject(chunk); // 8
+            out.writeObject(chunk); // 11
             out.flush();
         }
     }
@@ -61,10 +61,10 @@ public class Publisher extends Thread {
             }
         } while (fileExtension == null);
         byte[] extension = fileExtension.getBytes(StandardCharsets.UTF_8);
-        out.writeObject(extension); // 6
+        out.writeObject(extension); // 9
         out.flush();
         byte[] chunkCount = ByteBuffer.allocate(Integer.BYTES).putInt(blockCount).array();
-        out.writeObject(chunkCount); // 7
+        out.writeObject(chunkCount); // 10
         out.flush();
     }
 
