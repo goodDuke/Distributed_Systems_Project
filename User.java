@@ -11,9 +11,12 @@ public class User {
     private int port;
     private int id;
     private Broker b;
-    private Socket requestSocket;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
+    private Socket requestSocketPublisher;
+    private Socket requestSocketConsumer;
+    private ObjectOutputStream outPublisher;
+    private ObjectInputStream inPublisher;
+    private ObjectOutputStream outConsumer;
+    private ObjectInputStream inConsumer;
     private int topicCode;
     private String topicString;
     private boolean firstConnection = true;
@@ -35,34 +38,37 @@ public class User {
 
     private void connect() {
         try {
-            requestSocket = new Socket(b.getIp(), b.getPort());
-            out = new ObjectOutputStream(requestSocket.getOutputStream());
-            in = new ObjectInputStream(requestSocket.getInputStream());
+            requestSocketPublisher = new Socket(b.getIp(), b.getPort());
+            requestSocketConsumer = new Socket(b.getIp(), b.getPort());
+            outPublisher = new ObjectOutputStream(requestSocketPublisher.getOutputStream());
+            inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
+            outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
+            inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
             System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
             boolean disconnect = false;
             while (!disconnect) {
                 while (true) {
                     topicCode = getTopic();
-                    out.writeInt(id); // 1
-                    out.flush();
+                    outConsumer.writeInt(id); // 1C
+                    outConsumer.flush();
 
-                    out.writeBoolean(firstConnection); // 2
-                    out.flush();
+                    outConsumer.writeBoolean(firstConnection); // 2C
+                    outConsumer.flush();
 
-                    out.writeObject(topicString); // 3
-                    out.flush();
+                    outConsumer.writeObject(topicString); // 3C
+                    outConsumer.flush();
 
-                    out.writeInt(topicCode); // 4
-                    out.flush();
+                    outConsumer.writeInt(topicCode); // 4C
+                    outConsumer.flush();
 
-                    boolean registeredUser = in.readBoolean(); // 5
+                    boolean registeredUser = inConsumer.readBoolean(); // 5C
 
                     if (!registeredUser) {
                         System.out.println("You are unable to access the requested topic.");
                         continue;
                     }
                     // Get broker object which contains the requested topic
-                    Broker matchedBroker = (Broker) in.readObject(); // 6
+                    Broker matchedBroker = (Broker) inConsumer.readObject(); // 6C
 
                     // If the user pressed "Q" when asked to enter the topic disconnect
                     if (topicCode == 81) {
@@ -77,12 +83,13 @@ public class User {
                         break;
                     }
                 }
+
+                if (topicCode != 81) {
+                    c = new Consumer(b, topicCode, requestSocketConsumer, outConsumer, inConsumer);
+                    c.start();
+                }
                 while(true) {
                     if (topicCode != 81) {
-                        c = new Consumer(b, topicCode, requestSocket, out, in);
-                        c.start();
-                        c.join();
-
                         publisherMode = false;
                         Scanner s = new Scanner(System.in);
                         System.out.println("Press 'P' to enter publisher mode.\n" +
@@ -91,10 +98,11 @@ public class User {
                         if (publisherInput.equals("P"))
                             publisherMode = true;
 
-                        out.writeBoolean(publisherMode); // 9
-                        out.flush();
+                        outPublisher.writeBoolean(publisherMode); // 1P
+                        outPublisher.flush();
                         if (publisherMode) {
-                            p = new Publisher(b, topicCode, requestSocket, out, in);
+                            p = new Publisher(b, topicCode, requestSocketPublisher,
+                                    outPublisher, inPublisher, id);
                             p.start();
                             p.join();
                         }
@@ -107,18 +115,17 @@ public class User {
                             case "T":
                                 firstConnection = true;
                                 newTopic = true;
-                                out.writeObject(input); // 13
-                                out.flush();
+                                outPublisher.writeObject(input); // 7P
+                                outPublisher.flush();
                                 break;
                             case "Q":
-                                out.writeObject(input); // 12
-                                out.flush();
+                                outPublisher.writeObject(input); // 7P
+                                outPublisher.flush();
                                 disconnect = true;
                                 break;
                             default:
-                                out.writeObject(input); // 12
-                                out.flush();
-                                System.out.println("Checking for new messages.");
+                                outPublisher.writeObject(input); // 7P
+                                outPublisher.flush();
                         }
                         if (newTopic || disconnect)
                             break;
@@ -135,15 +142,18 @@ public class User {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
-        try {
-            in.close();
-            out.close();
-            requestSocket.close();
-            System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
-        } catch (IOException ioException) {
-            ioException.printStackTrace();
+            try {
+                inPublisher.close();
+                outPublisher.close();
+                outConsumer.close();
+                inConsumer.close();
+                requestSocketPublisher.close();
+                requestSocketConsumer.close();
+                System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
         }
-    }
     }
 
     // Create a hash code for the given topic
@@ -158,22 +168,28 @@ public class User {
     // Otherwise close the current connection and connect to the right one
     private void connectToMatchedBroker(Broker matchedBroker) throws IOException {
         if (!Objects.equals(b.getIp(), matchedBroker.getIp()) || !Objects.equals(b.getPort(), matchedBroker.getPort())) {
-            in.close();
-            out.close();
-            requestSocket.close();
+            inPublisher.close();
+            outPublisher.close();
+            outConsumer.close();
+            inConsumer.close();
+            requestSocketPublisher.close();
+            requestSocketConsumer.close();
             System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
             b = matchedBroker;
-            requestSocket = new Socket(b.getIp(), b.getPort());
+            requestSocketPublisher = new Socket(b.getIp(), b.getPort());
+            requestSocketConsumer = new Socket(b.getIp(), b.getPort());
+            outPublisher = new ObjectOutputStream(requestSocketPublisher.getOutputStream());
+            inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
+            outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
+            inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
             System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
-            out = new ObjectOutputStream(requestSocket.getOutputStream());
-            in = new ObjectInputStream(requestSocket.getInputStream());
             firstConnection = false;
-            out.writeInt(id); // 1
-            out.flush();
-            out.writeBoolean(firstConnection); // 2
-            out.flush();
-            out.writeInt(topicCode); // 3
-            out.flush();
+            outConsumer.writeInt(id); // 1C
+            outConsumer.flush();
+            outConsumer.writeBoolean(firstConnection); // 2C
+            outConsumer.flush();
+            outConsumer.writeInt(topicCode); // 3C
+            outConsumer.flush();
         }
     }
 
@@ -185,5 +201,5 @@ public class User {
     }
 }
 
-// Αντί να κρατάμε για κάθε user ποια μηνύματα έχει διαβάσει μπορούμε να του στέλνουμε
-// αυτόματα τα 5 τελευταία και να τον ρωτάμε αν θέλει να δει όλα τα υπόλοιπα
+// συγχρονισμός μεταξύ publisher και consumer
+// δεν δουλεύει το disconnect

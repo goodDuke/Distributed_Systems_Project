@@ -1,17 +1,21 @@
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.io.*;
 import java.net.*;
+import java.util.regex.Pattern;
 
 public class Publisher extends Thread {
     private Broker b;
-    private Socket requestSocket;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
+    private Socket requestSocketPublisher;
+    private ObjectOutputStream outPublisher;
+    private ObjectInputStream inPublisher;
     private int topicCode;
+    private int id;
+    private String[] path_split;
 
     public void run() {
         try {
@@ -22,50 +26,33 @@ public class Publisher extends Thread {
     }
 
     private void push(int topicCode) throws IOException {
-        out.writeInt(topicCode); // 10
-        out.flush();
+        outPublisher.writeInt(topicCode); // 2P
+        outPublisher.flush();
         Scanner s = new Scanner(System.in);
         System.out.println("Enter the path of the file: ");
-        //String path = s.nextLine();
-        String path = ".\\src\\data\\mnm.txt";
+        String path = s.nextLine();
+        path_split = path.split(Pattern.quote(FileSystems.getDefault().getSeparator()));
+        //String path = ".\\src\\data\\mnm.txt";
         File file = new File(path);
         byte[] data = fileToByteArray(file);
         ArrayList<byte[]> chunks = createChunks(data);
         createInfoChunks(chunks.size());
         for (byte[] chunk: chunks) {
-            out.writeObject(chunk); // 13
-            out.flush();
+            outPublisher.writeObject(chunk); // 6P
+            outPublisher.flush();
         }
     }
 
     private void createInfoChunks(int blockCount) throws IOException {
-        Scanner s = new Scanner(System.in);
-        String fileExtension = null;
-        do {
-            System.out.println("Press 1 for '.txt' file\n" +
-                    "Press 2 for '.jpg' file\n" +
-                    "Press 3 for '.mp4' file");
-            String fileExtensionNum = s.nextLine();
-            switch (fileExtensionNum) {
-                case "1":
-                    fileExtension = ".txt";
-                    break;
-                case "2":
-                    fileExtension = ".jpg";
-                    break;
-                case "3":
-                    fileExtension = ".mp4";
-                    break;
-                default:
-                    System.out.println("Wrong number entered. Please try again.");
-            }
-        } while (fileExtension == null);
-        byte[] extension = fileExtension.getBytes(StandardCharsets.UTF_8);
-        out.writeObject(extension); // 11
-        out.flush();
-        byte[] chunkCount = ByteBuffer.allocate(Integer.BYTES).putInt(blockCount).array();
-        out.writeObject(chunkCount); // 12
-        out.flush();
+        byte[] file_name = path_split[path_split.length-1].getBytes(StandardCharsets.UTF_8);
+        outPublisher.writeObject(file_name); // 3P
+        outPublisher.flush();
+        byte[] blockCountChunk = ByteBuffer.allocate(Integer.BYTES).putInt(blockCount).array();
+        outPublisher.writeObject(blockCountChunk); // 4P
+        outPublisher.flush();
+        byte[] publisherId = ByteBuffer.allocate(Integer.BYTES).putInt(id).array();
+        outPublisher.writeObject(publisherId); // 5P
+        outPublisher.flush();
     }
 
     // Convert file to byte array
@@ -101,11 +88,13 @@ public class Publisher extends Thread {
         return listOfChunks;
     }
 
-    Publisher(Broker b, int topicCode, Socket requestSocket, ObjectOutputStream out, ObjectInputStream in) {
+    Publisher(Broker b, int topicCode, Socket requestSocket,
+              ObjectOutputStream out, ObjectInputStream in, int id) {
         this.b = b;
         this.topicCode = topicCode;
-        this.requestSocket = requestSocket;
-        this.out = out;
-        this.in = in;
+        this.requestSocketPublisher = requestSocket;
+        this.outPublisher = out;
+        this.inPublisher = in;
+        this.id = id;
     }
 }

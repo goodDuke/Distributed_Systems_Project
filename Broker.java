@@ -3,27 +3,29 @@ import java.net.*;
 import java.util.*;
 
 public class Broker extends Thread implements Serializable {
-    private int requestedTopic;
-    private ObjectInputStream in;
-    private ObjectOutputStream out;
-    private static HashMap<Integer, Broker> brokers = new HashMap<Integer, Broker>();
-    private static int[][] topics;
     private String ip;
     private int port;
     private ServerSocket providerSocket;
-    private Socket connection = null;
-    private boolean publisherMode;
-    private Thread t;
-    private int currentBroker;
-    private HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
-    private int currentUser;
+    private Socket connectionPublisher = null;
+    private Socket connectionConsumer = null;
     private ArrayList<String[]> topicsAndUsers;
+    private ObjectInputStream inPublisher;
+    private ObjectOutputStream outPublisher;
+    private ObjectInputStream inConsumer;
+    private ObjectOutputStream outConsumer;
+    private HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
+    private static HashMap<Integer, Broker> brokers = new HashMap<>();
+    private static int[][] topics;
+    private int currentBroker;
+    private static Broker b;
+
 
     public static void main(String[] args) {
         // TODO set port and IP manually
-        int port = 1200;
+        int port = 1100;
         String ip = "127.0.0.1";
-        new Broker(ip, port).acceptConnection();
+        b = new Broker(ip, port);
+        b.acceptConnection();
     }
 
     // The broker will wait on the given port for a user to connect
@@ -47,69 +49,28 @@ public class Broker extends Thread implements Serializable {
             while (true) {
                 // Open connection on port and connect to publisher
                 System.out.println("Waiting for connection on port " + port);
-                connection = providerSocket.accept();
-                out = new ObjectOutputStream(connection.getOutputStream());
-                in = new ObjectInputStream(connection.getInputStream());
+                connectionPublisher = providerSocket.accept();
+                connectionConsumer = providerSocket.accept();
+                outPublisher = new ObjectOutputStream(connectionPublisher.getOutputStream());
+                inPublisher = new ObjectInputStream(connectionPublisher.getInputStream());
+                outConsumer = new ObjectOutputStream(connectionConsumer.getOutputStream());
+                inConsumer = new ObjectInputStream(connectionConsumer.getInputStream());
                 System.out.println("Connected on port: " + port);
-                System.out.println("Connected user: " + connection.getInetAddress().getHostName());
-                boolean disconnect = false;
-                while(!disconnect) {
-                    // Check which broker contains the requested topic only if the
-                    // current broker is the first one the publisher connected to
-                    int matchedBroker;
-                    while (true) {
-                        currentUser = in.readInt(); // 1
-                        boolean firstConnection = in.readBoolean(); // 2
-                        if (firstConnection) {
-                            matchedBroker = getBroker();
-                            if (matchedBroker != -1 || requestedTopic == 81)
-                                break;
-                        } else if (requestedTopic != 81) {
-                            requestedTopic = in.readInt(); // 3
-                            matchedBroker = currentBroker;
-                            break;
-                        }
-                    }
-                    while(true) {
-                        if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                            pull();
-                            publisherMode = in.readBoolean(); // 9
-                            if (publisherMode) {
-                                t = new ActionsForPublishers(brokers, topics, getIp(), getPort(), out, in, queues);
-                                t.start();
-                                t.join();
-                            }
-                            String userInput = (String) in.readObject(); // 13
-                            if (userInput.equals("T") || userInput.equals("Q")) {
-                                if (userInput.equals("Q"))
-                                    disconnect = true;
-                                break;
-                            }
-                        } else if (currentBroker != matchedBroker) {
-                            disconnect = true;
-                            break;
-                        }
-                    }
-                }
+                System.out.println("Connected user: " + connectionPublisher.getInetAddress().getHostName());
+                new BrokerActions(inPublisher, outPublisher, inConsumer, outConsumer, topicsAndUsers, brokers, topics, b, queues, currentBroker).start();
             }
-        } catch (IOException | InterruptedException | ClassNotFoundException ioException) {
+        } catch (IOException ioException) {
             ioException.printStackTrace();
         } finally {
             try {
+                inPublisher.close();
+                outPublisher.close();
+                outConsumer.close();
+                inConsumer.close();
                 providerSocket.close();
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
-        }
-    }
-
-    private void pull() throws IOException {
-        boolean isEmpty = queues.get(requestedTopic).isEmpty();
-        out.writeBoolean(isEmpty); // 7
-        out.flush();
-        for (byte[] chunk: queues.get(requestedTopic)) {
-            out.writeObject(chunk); // 8
-            out.flush();
         }
     }
 
@@ -145,65 +106,6 @@ public class Broker extends Thread implements Serializable {
             }
         }*/
         return registeredTopics;
-    }
-
-    // Find the broker that contains the requested topic
-    private int getBroker() {
-        int matchedBroker = -1;
-        try {
-            String topicString = (String) in.readObject(); // 3
-            requestedTopic = in.readInt(); // 4
-            boolean registeredUser = checkUser(topicString);
-            out.writeBoolean(registeredUser); // 5
-            out.flush();
-            // If the user is registered to use the requested topic search for the corresponding broker
-            if (registeredUser) {
-                for (int i = 0; i < brokers.size(); i++) {
-                    for (int topic : topics[i]) {
-                        if (requestedTopic == topic) {
-                            matchedBroker = i;
-                            break;
-                        }
-                    }
-                    if (matchedBroker != -1) {
-                        out.writeObject(brokers.get(matchedBroker)); // 6
-                        out.flush();
-                        break;
-                    }
-                }
-                if (matchedBroker == -1) {
-                    out.writeObject(null); // 6
-                    out.flush();
-                }
-            }
-
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-        return matchedBroker;
-    }
-
-    // Check whether the user requesting the topic is registered to use it
-    private boolean checkUser(String topicString) {
-        // Return false only if the topic exists and the user isn't registered to use it
-        // Return true otherwise
-        boolean topicExists = false;
-        for (String[] x: topicsAndUsers) {
-             if (x[0].equals(topicString)) {
-                 topicExists = true;
-                 // If there are users registered in the topic
-                 if (x.length == 2) {
-                     for (String id : x[1].split(",")) {
-                         if (currentUser == Integer.parseInt(id))
-                             return true;
-                     }
-                 }
-             }
-        }
-        if (topicExists)
-            return false;
-        else
-            return true;
     }
 
     // Initialize Broker's queues. For each topic there is one queue

@@ -1,16 +1,16 @@
 import java.io.*;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Objects;
 import java.util.Queue;
 
 public class ActionsForPublishers extends Thread {
-    private ObjectInputStream in;
-    private ObjectOutputStream out;
+    private ObjectInputStream inPublisher;
+    private ObjectOutputStream outPublisher;
     private HashMap<Integer, Broker> brokers;
     private int[][] topics;
+    // Create a queue for each topic. Find the queue
+    // in the HashMap by the topic code
     private HashMap<Integer, Queue<byte[]>> queues;
-    // Create a queue for each topic. Find the queue in the HashMap by the topic code
+
 
     private String ip;
     private int port;
@@ -22,8 +22,8 @@ public class ActionsForPublishers extends Thread {
         this.topics = topics;
         this.ip = ip;
         this.port = port;
-        this.out = out;
-        this.in = in;
+        this.outPublisher = out;
+        this.inPublisher = in;
         this.queues = queues;
     }
 
@@ -37,20 +37,22 @@ public class ActionsForPublishers extends Thread {
 
     // Collecting the chunks for a specific file and adding them to the correct queue
     private void receiveData() throws IOException, ClassNotFoundException {
-        int topicCode = in.readInt(); // 10
-        byte[] extension = (byte[]) in.readObject(); // 11
-        queues.get(topicCode).add(extension);
-        byte[] blockCount = (byte[]) in.readObject(); // 12
-        queues.get(topicCode).add(blockCount);
+        int topicCode = inPublisher.readInt(); // 2P
+        byte[] fileName = (byte[]) inPublisher.readObject(); // 3P
+        queues.get(topicCode).add(fileName);
+        byte[] blockCountChunk = (byte[]) inPublisher.readObject(); // 4P
+        queues.get(topicCode).add(blockCountChunk);
+        byte[] publisherId = (byte[]) inPublisher.readObject(); // 5P
+        queues.get(topicCode).add(publisherId);
 
         // Converting blockCount to integer
-        int chunkCount = 0;
-        for (byte b: blockCount)
-            chunkCount += b;
+        int blockCount = 0;
+        for (byte b: blockCountChunk)
+            blockCount += b;
 
         // Saving chunks in the corresponding queue
-        for (int i = 1; i <= chunkCount; i++) {
-            byte[] chunk = (byte[]) in.readObject(); // 13
+        for (int i = 1; i <= blockCount; i++) {
+            byte[] chunk = (byte[]) inPublisher.readObject(); // 6P
             queues.get(topicCode).add(chunk);
         }
     }
