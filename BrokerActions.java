@@ -1,9 +1,10 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.*;
 
-public class BrokerActions extends Thread{
+public class BrokerActions extends Thread implements Serializable {
     private boolean publisherMode;
     private Thread p;
     private Thread c;
@@ -19,6 +20,7 @@ public class BrokerActions extends Thread{
     private static HashMap<Integer, Broker> brokers = new HashMap<Integer, Broker>();
     private static int[][] topics;
     private Broker b;
+    private boolean newMessage = false;
 
     public void run() {
         try {
@@ -32,16 +34,21 @@ public class BrokerActions extends Thread{
                     boolean firstConnection = inConsumer.readBoolean(); // 2C
                     if (firstConnection) {
                         matchedBroker = getBroker();
-                        if (matchedBroker != -1 || requestedTopic == 81)
+                        if (matchedBroker != -1 || requestedTopic == 81) {
+                            if (c != null) {
+                                c.interrupt();
+                            }
                             break;
+                        }
                     } else if (requestedTopic != 81) {
                         requestedTopic = inConsumer.readInt(); // 3C
                         matchedBroker = currentBroker;
                         break;
                     }
                 }
+
                 if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                    c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic);
+                    c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic, newMessage);
                     c.start();
                 }
 
@@ -53,12 +60,14 @@ public class BrokerActions extends Thread{
                                     outPublisher, inPublisher, queues);
                             p.start();
                             p.join();
+                            newMessage = true;
                         }
                         String userInput = (String) inPublisher.readObject(); // 7P
 
                         if (userInput.equals("T") || userInput.equals("Q")) {
                             if (userInput.equals("Q"))
                                 disconnect = true;
+                            c.interrupt();
                             break;
                         }
                     } else if (currentBroker != matchedBroker) {
@@ -129,6 +138,10 @@ public class BrokerActions extends Thread{
             return false;
         else
             return true;
+    }
+
+    public boolean isNewMessage() {
+        return newMessage;
     }
 
     BrokerActions(ObjectInputStream inPublisher, ObjectOutputStream outPublisher,

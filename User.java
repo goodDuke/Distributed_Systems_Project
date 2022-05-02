@@ -1,12 +1,13 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Objects;
 import java.util.Scanner;
 
-public class User {
+public class User implements Serializable {
     private String ip;
     private int port;
     private int id;
@@ -72,6 +73,8 @@ public class User {
 
                     // If the user pressed "Q" when asked to enter the topic disconnect
                     if (topicCode == 81) {
+                        if (c != null)
+                            c.interrupt();
                         disconnect = true;
                         break;
                     }
@@ -88,6 +91,7 @@ public class User {
                     c = new Consumer(b, topicCode, requestSocketConsumer, outConsumer, inConsumer);
                     c.start();
                 }
+
                 while(true) {
                     if (topicCode != 81) {
                         publisherMode = false;
@@ -127,8 +131,10 @@ public class User {
                                 outPublisher.writeObject(input); // 7P
                                 outPublisher.flush();
                         }
-                        if (newTopic || disconnect)
+                        if (newTopic || disconnect) {
+                            c.interrupt();
                             break;
+                        }
                     } else
                         break;
                 }
@@ -201,5 +207,5 @@ public class User {
     }
 }
 
-// συγχρονισμός μεταξύ publisher και consumer
-// δεν δουλεύει το disconnect
+// όταν ξανασυνδεόμαστε στο ίδιο τόπικ και πάμε να κάνουμε publish ξανά
+//

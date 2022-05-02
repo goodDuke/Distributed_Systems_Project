@@ -3,7 +3,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-public class Consumer extends Thread{
+public class Consumer extends Thread implements Serializable {
     private Broker b;
     private Socket requestSocketConsumer;
     private ObjectOutputStream outConsumer;
@@ -15,9 +15,8 @@ public class Consumer extends Thread{
     public void run() {
         try {
             receiveAllData();
-
             boolean newMessage;
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 newMessage = inConsumer.readBoolean(); // 7C
                 if (newMessage)
                     receiveData();
@@ -110,7 +109,7 @@ public class Consumer extends Thread{
                 j++;
             }
         }
-        pointerChunk = i+1;
+        pointerChunk = i;
 
         stream.write(completeFile);
         stream.close();
@@ -124,4 +123,3 @@ public class Consumer extends Thread{
         this.inConsumer = in;
     }
 }
-

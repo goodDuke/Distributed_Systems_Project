@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Queue;
 
-public class ActionsForPublishers extends Thread {
+public class ActionsForPublishers extends Thread implements Serializable{
     private ObjectInputStream inPublisher;
     private ObjectOutputStream outPublisher;
     private HashMap<Integer, Broker> brokers;
@@ -17,7 +17,8 @@ public class ActionsForPublishers extends Thread {
 
     public ActionsForPublishers(HashMap<Integer, Broker> brokers,
                                 int[][] topics, String ip, int port,
-                                ObjectOutputStream out, ObjectInputStream in, HashMap<Integer, Queue<byte[]>> queues) {
+                                ObjectOutputStream out, ObjectInputStream in,
+                                HashMap<Integer, Queue<byte[]>> queues) {
         this.brokers = brokers;
         this.topics = topics;
         this.ip = ip;
