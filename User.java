@@ -12,8 +12,11 @@ public class User implements Serializable {
     private int port;
     private int id;
     private Broker b;
+    private Socket requestSocketUser;
     private Socket requestSocketPublisher;
     private Socket requestSocketConsumer;
+    private ObjectOutputStream outUser;
+    private ObjectInputStream inUser;
     private ObjectOutputStream outPublisher;
     private ObjectInputStream inPublisher;
     private ObjectOutputStream outConsumer;
@@ -31,16 +34,19 @@ public class User implements Serializable {
         //Broker b3 = new Broker("127.0.0.1", 1300);
 
         // TODO set port, IP, id manually
-        int port = 2200;
+        int port = 2100;
         String ip = "127.0.0.1";
-        int id = 0;
+        int id = 1;
         new User(ip, port, id, b1).connect();
     }
 
     private void connect() {
         try {
+            requestSocketUser = new Socket(b.getIp(), b.getPort());
             requestSocketPublisher = new Socket(b.getIp(), b.getPort());
             requestSocketConsumer = new Socket(b.getIp(), b.getPort());
+            outUser = new ObjectOutputStream(requestSocketUser.getOutputStream());
+            inUser = new ObjectInputStream(requestSocketUser.getInputStream());
             outPublisher = new ObjectOutputStream(requestSocketPublisher.getOutputStream());
             inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
             outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
@@ -50,26 +56,27 @@ public class User implements Serializable {
             while (!disconnect) {
                 while (true) {
                     topicCode = getTopic();
-                    outConsumer.writeInt(id); // 1C
-                    outConsumer.flush();
+                    outUser.writeInt(id); // 1U
+                    outUser.flush();
 
-                    outConsumer.writeBoolean(firstConnection); // 2C
-                    outConsumer.flush();
+                    outUser.writeBoolean(firstConnection); // 2U
+                    outUser.flush();
 
-                    outConsumer.writeObject(topicString); // 3C
-                    outConsumer.flush();
+                    outUser.writeObject(topicString); // 3U
+                    outUser.flush();
 
-                    outConsumer.writeInt(topicCode); // 4C
-                    outConsumer.flush();
+                    outUser.writeInt(topicCode); // 4U
+                    outUser.flush();
 
-                    boolean registeredUser = inConsumer.readBoolean(); // 5C
+                    boolean registeredUser = inUser.readBoolean(); // 5U
 
                     if (!registeredUser) {
                         System.out.println("You are unable to access the requested topic.");
                         continue;
                     }
+
                     // Get broker object which contains the requested topic
-                    Broker matchedBroker = (Broker) inConsumer.readObject(); // 6C
+                    Broker matchedBroker = (Broker) inUser.readObject(); // 6U
 
                     // If the user pressed "Q" when asked to enter the topic disconnect
                     if (topicCode == 81) {
@@ -119,17 +126,17 @@ public class User implements Serializable {
                             case "T":
                                 firstConnection = true;
                                 newTopic = true;
-                                outPublisher.writeObject(input); // 7P
-                                outPublisher.flush();
+                                outUser.writeObject(input); // 7U
+                                outUser.flush();
                                 break;
                             case "Q":
-                                outPublisher.writeObject(input); // 7P
-                                outPublisher.flush();
+                                outUser.writeObject(input); // 7U
+                                outUser.flush();
                                 disconnect = true;
                                 break;
                             default:
-                                outPublisher.writeObject(input); // 7P
-                                outPublisher.flush();
+                                outUser.writeObject(input); // 7U
+                                outUser.flush();
                         }
                         if (newTopic || disconnect) {
                             c.interrupt();
@@ -174,28 +181,34 @@ public class User implements Serializable {
     // Otherwise close the current connection and connect to the right one
     private void connectToMatchedBroker(Broker matchedBroker) throws IOException {
         if (!Objects.equals(b.getIp(), matchedBroker.getIp()) || !Objects.equals(b.getPort(), matchedBroker.getPort())) {
+            inUser.close();
+            outUser.close();
             inPublisher.close();
             outPublisher.close();
             outConsumer.close();
             inConsumer.close();
+            requestSocketUser.close();
             requestSocketPublisher.close();
             requestSocketConsumer.close();
             System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
             b = matchedBroker;
+            requestSocketUser = new Socket(b.getIp(), b.getPort());
             requestSocketPublisher = new Socket(b.getIp(), b.getPort());
             requestSocketConsumer = new Socket(b.getIp(), b.getPort());
+            outUser = new ObjectOutputStream(requestSocketUser.getOutputStream());
+            inUser = new ObjectInputStream(requestSocketUser.getInputStream());
             outPublisher = new ObjectOutputStream(requestSocketPublisher.getOutputStream());
             inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
             outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
             inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
             System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
             firstConnection = false;
-            outConsumer.writeInt(id); // 1C
-            outConsumer.flush();
-            outConsumer.writeBoolean(firstConnection); // 2C
-            outConsumer.flush();
-            outConsumer.writeInt(topicCode); // 3C
-            outConsumer.flush();
+            outUser.writeInt(id); // 1U
+            outUser.flush();
+            outUser.writeBoolean(firstConnection); // 2U
+            outUser.flush();
+            outUser.writeInt(topicCode); // 3U
+            outUser.flush();
         }
     }
 
@@ -207,5 +220,10 @@ public class User implements Serializable {
     }
 }
 
-// όταν ξανασυνδεόμαστε στο ίδιο τόπικ και πάμε να κάνουμε publish ξανά
-//
+// δεν μας αφήνει να αλλάξουμε θέμα (μόνο όταν δεν μπαίνουμε στον publisher? και αυτό όχι πάντα)
+// error στον δεύτερο consumer όταν κάνει push
+
+
+// όχι πάντα
+// error όταν κλείνουμε
+// error όταν κάνουμε push (ΕΟF...)

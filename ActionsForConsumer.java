@@ -11,18 +11,18 @@ public class ActionsForConsumer extends Thread implements Serializable {
     private HashMap<Integer, Queue<byte[]>> queues;
     private int requestedTopic;
     private int pointerChunk = 0;
-    private boolean newMessage;
-    private Broker b;
 
     public void run() {
         try {
             pullAllData();
             while (!Thread.currentThread().isInterrupted()) {
-                outConsumer.writeBoolean(newMessage); // 7C
+                outConsumer.writeBoolean(BrokerActions.newMessage); // 3C
                 outConsumer.flush();
-                if (newMessage) {
+                if (BrokerActions.newMessage) {
+                    outConsumer.writeBoolean(BrokerActions.newMessage); // 3C
+                    outConsumer.flush();
                     pull();
-                    newMessage = false;
+                    BrokerActions.newMessage = false;
                 }
             }
         } catch (IOException e) {
@@ -32,12 +32,12 @@ public class ActionsForConsumer extends Thread implements Serializable {
 
     private void pull() throws IOException {
         boolean isEmpty = queues.get(requestedTopic).isEmpty();
-        outConsumer.writeBoolean(isEmpty); // 8C
+        outConsumer.writeBoolean(isEmpty); // 4C
         outConsumer.flush();
         int i = 0;
         for (byte[] chunk: queues.get(requestedTopic)) {
             if (i >= pointerChunk) {
-                outConsumer.writeObject(chunk); // 9C
+                outConsumer.writeObject(chunk); // 5C
                 outConsumer.flush();
             }
             i++;
@@ -47,25 +47,23 @@ public class ActionsForConsumer extends Thread implements Serializable {
 
     private void pullAllData() throws IOException {
         boolean isEmpty = queues.get(requestedTopic).isEmpty();
-        outConsumer.writeBoolean(isEmpty); // 8C
+        outConsumer.writeBoolean(isEmpty); // 1C
         outConsumer.flush();
         if (!isEmpty) {
             outConsumer.writeInt(queues.get(requestedTopic).size());
             outConsumer.flush();
             for (byte[] chunk : queues.get(requestedTopic)) {
-                outConsumer.writeObject(chunk); // 9C
+                outConsumer.writeObject(chunk); // 2C
                 outConsumer.flush();
             }
         }
     }
 
-    public ActionsForConsumer(Broker b, ObjectInputStream inConsumer, ObjectOutputStream outConsumer,
-                              HashMap<Integer, Queue<byte[]>> queues, int requestedTopic, boolean newMessage) {
+    public ActionsForConsumer(ObjectInputStream inConsumer, ObjectOutputStream outConsumer,
+                              HashMap<Integer, Queue<byte[]>> queues, int requestedTopic) {
         this.inConsumer = inConsumer;
         this.outConsumer = outConsumer;
         this.queues = queues;
         this.requestedTopic = requestedTopic;
-        this.newMessage = newMessage;
-        this.b = b;
     }
 }

@@ -6,9 +6,12 @@ public class Broker extends Thread implements Serializable {
     private String ip;
     private int port;
     private ServerSocket providerSocket;
+    private Socket connectionUser = null;
     private Socket connectionPublisher = null;
     private Socket connectionConsumer = null;
     private ArrayList<String[]> topicsAndUsers;
+    private ObjectOutputStream outUser;
+    private ObjectInputStream inUser;
     private ObjectInputStream inPublisher;
     private ObjectOutputStream outPublisher;
     private ObjectInputStream inConsumer;
@@ -49,15 +52,19 @@ public class Broker extends Thread implements Serializable {
             while (true) {
                 // Open connection on port and connect to publisher
                 System.out.println("Waiting for connection on port " + port);
+                connectionUser = providerSocket.accept();
                 connectionPublisher = providerSocket.accept();
                 connectionConsumer = providerSocket.accept();
+                outUser = new ObjectOutputStream(connectionUser.getOutputStream());
+                inUser = new ObjectInputStream(connectionUser.getInputStream());
                 outPublisher = new ObjectOutputStream(connectionPublisher.getOutputStream());
                 inPublisher = new ObjectInputStream(connectionPublisher.getInputStream());
                 outConsumer = new ObjectOutputStream(connectionConsumer.getOutputStream());
                 inConsumer = new ObjectInputStream(connectionConsumer.getInputStream());
                 System.out.println("Connected on port: " + port);
                 System.out.println("Connected user: " + connectionPublisher.getInetAddress().getHostName());
-                new BrokerActions(inPublisher, outPublisher, inConsumer, outConsumer, topicsAndUsers, brokers, topics, b, queues, currentBroker).start();
+                new BrokerActions(inUser, outUser, inPublisher, outPublisher, inConsumer, outConsumer,
+                        topicsAndUsers, brokers, topics, b, queues, currentBroker).start();
             }
         } catch (IOException ioException) {
             ioException.printStackTrace();

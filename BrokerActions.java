@@ -12,15 +12,17 @@ public class BrokerActions extends Thread implements Serializable {
     private int currentUser;
     private int requestedTopic;
     private ArrayList<String[]> topicsAndUsers;
+    private ObjectOutputStream outUser;
+    private ObjectInputStream inUser;
     private ObjectInputStream inPublisher;
     private ObjectOutputStream outPublisher;
     private ObjectInputStream inConsumer;
     private ObjectOutputStream outConsumer;
     private static HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
-    private static HashMap<Integer, Broker> brokers = new HashMap<Integer, Broker>();
+    private static HashMap<Integer, Broker> brokers = new HashMap<>();
     private static int[][] topics;
     private Broker b;
-    private boolean newMessage = false;
+    static volatile boolean newMessage = false;
 
     public void run() {
         try {
@@ -30,8 +32,8 @@ public class BrokerActions extends Thread implements Serializable {
                 // current broker is the first one the publisher connected to
                 int matchedBroker;
                 while (true) {
-                    currentUser = inConsumer.readInt(); // 1C
-                    boolean firstConnection = inConsumer.readBoolean(); // 2C
+                    currentUser = inUser.readInt(); // 1U
+                    boolean firstConnection = inUser.readBoolean(); // 2U
                     if (firstConnection) {
                         matchedBroker = getBroker();
                         if (matchedBroker != -1 || requestedTopic == 81) {
@@ -41,14 +43,14 @@ public class BrokerActions extends Thread implements Serializable {
                             break;
                         }
                     } else if (requestedTopic != 81) {
-                        requestedTopic = inConsumer.readInt(); // 3C
+                        requestedTopic = inUser.readInt(); // 3U
                         matchedBroker = currentBroker;
                         break;
                     }
                 }
 
                 if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                    c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic, newMessage);
+                    c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic);
                     c.start();
                 }
 
@@ -60,10 +62,10 @@ public class BrokerActions extends Thread implements Serializable {
                                     outPublisher, inPublisher, queues);
                             p.start();
                             p.join();
-                            newMessage = true;
+                            BrokerActions.newMessage = true;
                         }
-                        String userInput = (String) inPublisher.readObject(); // 7P
 
+                        String userInput = (String) inUser.readObject(); // 7U
                         if (userInput.equals("T") || userInput.equals("Q")) {
                             if (userInput.equals("Q"))
                                 disconnect = true;
@@ -85,11 +87,11 @@ public class BrokerActions extends Thread implements Serializable {
     private int getBroker() {
         int matchedBroker = -1;
         try {
-            String topicString = (String) inConsumer.readObject(); // 3C
-            requestedTopic = inConsumer.readInt(); // 4C
+            String topicString = (String) inUser.readObject(); // 3U
+            requestedTopic = inUser.readInt(); // 4U
             boolean registeredUser = checkUser(topicString);
-            outConsumer.writeBoolean(registeredUser); // 5C
-            outConsumer.flush();
+            outUser.writeBoolean(registeredUser); // 5U
+            outUser.flush();
             // If the user is registered to use the requested topic search for the corresponding broker
             if (registeredUser) {
                 for (int i = 0; i < brokers.size(); i++) {
@@ -100,14 +102,14 @@ public class BrokerActions extends Thread implements Serializable {
                         }
                     }
                     if (matchedBroker != -1) {
-                        outConsumer.writeObject(brokers.get(matchedBroker)); // 6C
-                        outConsumer.flush();
+                        outUser.writeObject(brokers.get(matchedBroker)); // 6U
+                        outUser.flush();
                         break;
                     }
                 }
                 if (matchedBroker == -1) {
-                    outConsumer.writeObject(null); // 6C
-                    outConsumer.flush();
+                    outUser.writeObject(null); // 6U
+                    outUser.flush();
                 }
             }
 
@@ -134,20 +136,19 @@ public class BrokerActions extends Thread implements Serializable {
                 }
             }
         }
-        if (topicExists)
+        if (topicExists) {
             return false;
-        else
+        } else
             return true;
     }
 
-    public boolean isNewMessage() {
-        return newMessage;
-    }
-
-    BrokerActions(ObjectInputStream inPublisher, ObjectOutputStream outPublisher,
+    BrokerActions(ObjectInputStream inUser, ObjectOutputStream outUser,
+                  ObjectInputStream inPublisher, ObjectOutputStream outPublisher,
                   ObjectInputStream inConsumer, ObjectOutputStream outConsumer,
                   ArrayList<String[]> topicsAndUsers, HashMap<Integer,
             Broker> brokers, int[][] topics, Broker b, HashMap<Integer, Queue<byte[]>> queues, int currentBroker) {
+        this.inUser = inUser;
+        this.outUser = outUser;
         this.inPublisher = inPublisher;
         this.outPublisher = outPublisher;
         this.inConsumer = inConsumer;
