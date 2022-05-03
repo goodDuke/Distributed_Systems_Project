@@ -70,6 +70,8 @@ public class Broker extends Thread implements Serializable {
             ioException.printStackTrace();
         } finally {
             try {
+                inUser.close();
+                outUser.close();
                 inPublisher.close();
                 outPublisher.close();
                 outConsumer.close();

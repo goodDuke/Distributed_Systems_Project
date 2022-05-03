@@ -78,6 +78,11 @@ public class BrokerActions extends Thread implements Serializable {
                     }
                 }
             }
+            if (inUser.readBoolean()) {
+                outConsumer.writeBoolean(false);
+                outConsumer.flush();
+            }
+
         } catch (IOException | InterruptedException | ClassNotFoundException e) {
             e.printStackTrace();
         }

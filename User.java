@@ -146,6 +146,17 @@ public class User implements Serializable {
                         break;
                 }
             }
+            // If the consumer thread is still alive (waiting for an input in line 20 on file Consumer.java)
+            // and we try to close it an error will be produced. In order to avoid the error
+            // we check whether the thread is still alive and if it is a message is sent to it.
+            // After the execution of line 20 the c.interrupted command is executed and the thread is interrupted.
+            if (c != null && c.isAlive()){
+                outUser.writeBoolean(true);
+                outUser.flush();
+            } else {
+                outUser.writeBoolean(false);
+                outUser.flush();
+            }
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
         } catch (ClassNotFoundException | IOException e) {
@@ -156,6 +167,8 @@ public class User implements Serializable {
             e.printStackTrace();
         } finally {
             try {
+                inUser.close();
+                outUser.close();
                 inPublisher.close();
                 outPublisher.close();
                 outConsumer.close();
@@ -220,9 +233,7 @@ public class User implements Serializable {
     }
 }
 
-// δεν μας αφήνει να αλλάξουμε θέμα (μόνο όταν δεν μπαίνουμε στον publisher? και αυτό όχι πάντα)
 // error στον δεύτερο consumer όταν κάνει push
-
 
 // όχι πάντα
 // error όταν κλείνουμε
