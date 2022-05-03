@@ -32,10 +32,13 @@ public class Consumer extends Thread implements Serializable {
         if (!isEmpty) {
             System.out.println("Fetching new message!");
             byte[] fileNameChunk = (byte[]) inConsumer.readObject(); // 5.1C
+            System.out.println("1");
             history.add(fileNameChunk);
             byte[] blockCountChunk = (byte[]) inConsumer.readObject(); // 5.2C
+            System.out.println("2");
             history.add(blockCountChunk);
             byte[] publisherId = (byte[]) inConsumer.readObject(); // 5.3C
+            System.out.println("3");
             history.add(publisherId);
 
             // Converting blockCount to integer
@@ -45,6 +48,7 @@ public class Consumer extends Thread implements Serializable {
 
             // Saving chunks in the corresponding ArrayList
             for (int i = 1; i <= blockCount; i++) {
+                System.out.println("4");
                 byte[] chunk = (byte[]) inConsumer.readObject(); // 5.4C
                 history.add(chunk);
             }
