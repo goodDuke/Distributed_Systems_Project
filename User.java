@@ -36,7 +36,7 @@ public class User implements Serializable {
         // TODO set port, IP, id manually
         int port = 2100;
         String ip = "127.0.0.1";
-        int id = 1;
+        int id = 0;
         new User(ip, port, id, b1).connect();
     }
 
@@ -117,8 +117,7 @@ public class User implements Serializable {
                             p.start();
                             p.join();
                         }
-                        System.out.println("Press 'T' if you want to connect to a different topic " +
-                                "or 'Q' if you want to disconnect from the broker.\n" +
+                        System.out.println("Press 'T' if you want to connect to a different topic.\n" +
                                 "Press anything else if you want to remain in the same topic:");
                         String input = s.nextLine();
                         boolean newTopic = false;
@@ -129,16 +128,11 @@ public class User implements Serializable {
                                 outUser.writeObject(input); // 7U
                                 outUser.flush();
                                 break;
-                            case "Q":
-                                outUser.writeObject(input); // 7U
-                                outUser.flush();
-                                disconnect = true;
-                                break;
                             default:
                                 outUser.writeObject(input); // 7U
                                 outUser.flush();
                         }
-                        if (newTopic || disconnect) {
+                        if (newTopic) {
                             c.interrupt();
                             break;
                         }
@@ -232,27 +226,3 @@ public class User implements Serializable {
         this.id = id;
     }
 }
-
-// error στον δεύτερο consumer όταν κάνει push
-// προσθεσα στον consumer στην recieveData 4 πριντ.
-// ετρεξα πρωτα user και εστειλα την μαρνι
-// ετρεξα μετα νεο user και εστειλα τχτ
-// βγαζει ερορ
-// ενω επρεπε τα πριντ να ειναι
-//1
-//2
-//3
-//4
-
-//ηταν
-//1
-//2
-//3
-//4
-//4
-//δηλαδη ηταν σαν να του εστελνε 5 τσανκ ενω εμεις του στειλαμε 4 που ειναι το τχτ.
-//ισως ξαναστελνει τη μαρνι;
-
-// όχι πάντα
-// error όταν κλείνουμε
-// error όταν κάνουμε push (ΕΟF...)

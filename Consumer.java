@@ -18,8 +18,10 @@ public class Consumer extends Thread implements Serializable {
             boolean newMessage;
             while (!Thread.currentThread().isInterrupted()) {
                 newMessage = inConsumer.readBoolean(); // 3C
-                if (newMessage)
+                if (newMessage) {
+                    System.out.println(3);
                     receiveData();
+                }
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -32,13 +34,10 @@ public class Consumer extends Thread implements Serializable {
         if (!isEmpty) {
             System.out.println("Fetching new message!");
             byte[] fileNameChunk = (byte[]) inConsumer.readObject(); // 5.1C
-            System.out.println("1");
             history.add(fileNameChunk);
             byte[] blockCountChunk = (byte[]) inConsumer.readObject(); // 5.2C
-            System.out.println("2");
             history.add(blockCountChunk);
             byte[] publisherId = (byte[]) inConsumer.readObject(); // 5.3C
-            System.out.println("3");
             history.add(publisherId);
 
             // Converting blockCount to integer
@@ -48,11 +47,11 @@ public class Consumer extends Thread implements Serializable {
 
             // Saving chunks in the corresponding ArrayList
             for (int i = 1; i <= blockCount; i++) {
-                System.out.println("4");
                 byte[] chunk = (byte[]) inConsumer.readObject(); // 5.4C
                 history.add(chunk);
             }
             recreateFile(blockCount, fileNameChunk);
+            System.out.println("New message fetched successfully!");
         }
     }
 
@@ -86,8 +85,9 @@ public class Consumer extends Thread implements Serializable {
                 byte[] chunk = (byte[]) inConsumer.readObject(); // 2C
                 history.add(chunk);
             }
+            recreateAllData();
+            System.out.println("History fetched successfully!");
         }
-        recreateAllData();
     }
 
     private void recreateAllData() throws IOException {

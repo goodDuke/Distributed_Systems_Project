@@ -10,7 +10,7 @@ public class ActionsForConsumer extends Thread implements Serializable {
     private ObjectOutputStream outConsumer;
     private HashMap<Integer, Queue<byte[]>> queues;
     private int requestedTopic;
-    private int pointerChunk = 0;
+    private int pointerChunk;
 
     public void run() {
         try {
@@ -18,9 +18,13 @@ public class ActionsForConsumer extends Thread implements Serializable {
             while (!Thread.currentThread().isInterrupted()) {
                 outConsumer.writeBoolean(BrokerActions.newMessage); // 3C
                 outConsumer.flush();
+                if (BrokerActions.newMessage)
+                    System.out.println(1);
                 if (BrokerActions.newMessage) {
                     outConsumer.writeBoolean(BrokerActions.newMessage); // 3C
                     outConsumer.flush();
+                    if (BrokerActions.newMessage)
+                        System.out.println(2);
                     pull();
                     BrokerActions.newMessage = false;
                 }
@@ -57,6 +61,7 @@ public class ActionsForConsumer extends Thread implements Serializable {
                 outConsumer.flush();
             }
         }
+        pointerChunk = queues.get(requestedTopic).size();
     }
 
     public ActionsForConsumer(ObjectInputStream inConsumer, ObjectOutputStream outConsumer,

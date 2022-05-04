@@ -66,9 +66,7 @@ public class BrokerActions extends Thread implements Serializable {
                         }
 
                         String userInput = (String) inUser.readObject(); // 7U
-                        if (userInput.equals("T") || userInput.equals("Q")) {
-                            if (userInput.equals("Q"))
-                                disconnect = true;
+                        if (userInput.equals("T")) {
                             c.interrupt();
                             break;
                         }
