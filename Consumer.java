@@ -17,9 +17,9 @@ public class Consumer extends Thread implements Serializable {
             receiveAllData();
             boolean newMessage;
             while (!Thread.currentThread().isInterrupted()) {
-                newMessage = inConsumer.readBoolean(); // 3C
+                newMessage = inConsumer.readBoolean(); // 4C
                 if (newMessage) {
-                    System.out.println(3);
+                    System.out.println(2);
                     receiveData();
                 }
             }
@@ -30,14 +30,16 @@ public class Consumer extends Thread implements Serializable {
 
     // Collecting the chunks for a specific file and adding them to the correct ArrayList
     private void receiveData() throws IOException, ClassNotFoundException {
-        boolean isEmpty = inConsumer.readBoolean(); // 4C
+        boolean isEmpty = inConsumer.readBoolean(); // 5C
+        System.out.println(3);
+        System.out.println(isEmpty);
         if (!isEmpty) {
             System.out.println("Fetching new message!");
-            byte[] fileNameChunk = (byte[]) inConsumer.readObject(); // 5.1C
+            byte[] fileNameChunk = (byte[]) inConsumer.readObject(); // 6.1C
             history.add(fileNameChunk);
-            byte[] blockCountChunk = (byte[]) inConsumer.readObject(); // 5.2C
+            byte[] blockCountChunk = (byte[]) inConsumer.readObject(); // 6.2C
             history.add(blockCountChunk);
-            byte[] publisherId = (byte[]) inConsumer.readObject(); // 5.3C
+            byte[] publisherId = (byte[]) inConsumer.readObject(); // 6.3C
             history.add(publisherId);
 
             // Converting blockCount to integer
@@ -47,7 +49,7 @@ public class Consumer extends Thread implements Serializable {
 
             // Saving chunks in the corresponding ArrayList
             for (int i = 1; i <= blockCount; i++) {
-                byte[] chunk = (byte[]) inConsumer.readObject(); // 5.4C
+                byte[] chunk = (byte[]) inConsumer.readObject(); // 6.4C
                 history.add(chunk);
             }
             recreateFile(blockCount, fileNameChunk);
@@ -78,11 +80,14 @@ public class Consumer extends Thread implements Serializable {
 
     private void receiveAllData() throws IOException, ClassNotFoundException {
         boolean isEmpty = inConsumer.readBoolean(); // 1C
+        System.out.println(1);
+        System.out.println(isEmpty);
         if (!isEmpty) {
             System.out.println("Fetching history!");
-            int totalChunks = inConsumer.readInt();
+            int totalChunks = inConsumer.readInt();  // 2C
+            System.out.println(totalChunks);
             for (int i = 1; i <= totalChunks; i++) {
-                byte[] chunk = (byte[]) inConsumer.readObject(); // 2C
+                byte[] chunk = (byte[]) inConsumer.readObject(); // 3C
                 history.add(chunk);
             }
             recreateAllData();

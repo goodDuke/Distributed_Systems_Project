@@ -94,6 +94,9 @@ public class User implements Serializable {
                     }
                 }
 
+                if (c != null && c.isAlive())
+                    System.out.println("here");
+
                 if (topicCode != 81) {
                     c = new Consumer(b, topicCode, requestSocketConsumer, outConsumer, inConsumer);
                     c.start();
@@ -139,17 +142,17 @@ public class User implements Serializable {
                     } else
                         break;
                 }
-            }
-            // If the consumer thread is still alive (waiting for an input in line 20 on file Consumer.java)
-            // and we try to close it an error will be produced. In order to avoid the error
-            // we check whether the thread is still alive and if it is a message is sent to it.
-            // After the execution of line 20 the c.interrupted command is executed and the thread is interrupted.
-            if (c != null && c.isAlive()){
-                outUser.writeBoolean(true);
-                outUser.flush();
-            } else {
-                outUser.writeBoolean(false);
-                outUser.flush();
+                // If the consumer thread is still alive (waiting for an input in line 20 on file Consumer.java)
+                // and we try to close it an error will be produced. In order to avoid the error
+                // we check whether the thread is still alive and if it is a message is sent to it.
+                // After the execution of line 20 the c.interrupted command is executed and the thread is interrupted.
+                if (c != null && c.isAlive()) {
+                    outUser.writeBoolean(true);
+                    outUser.flush();
+                } else {
+                    outUser.writeBoolean(false);
+                    outUser.flush();
+                }
             }
         } catch (UnknownHostException unknownHost) {
             System.err.println("You are trying to connect to an unknown host!");
