@@ -75,7 +75,7 @@ public class BrokerActions extends Thread implements Serializable {
                         break;
                     }
                 }
-                if (inUser.readBoolean()) {
+                if (currentBroker == matchedBroker && inUser.readBoolean()) { //8U
                     outConsumer.writeObject(null);
                     outConsumer.flush();
                     outConsumer.writeObject(null);

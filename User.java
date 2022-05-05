@@ -51,7 +51,7 @@ public class User implements Serializable {
             inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
             outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
             inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
-            System.out.println("\033[3mConnected to broker: " + b.getIp() + " on port: " + b.getPort() +"\033[0m");
+            System.out.println("\033[3mConnected to broker: " + b.getIp() + " on port: " + b.getPort() + "\033[0m");
             boolean disconnect = false;
             while (!disconnect) {
                 while (true) {
@@ -99,7 +99,7 @@ public class User implements Serializable {
                     c.start();
                 }
 
-                while(true) {
+                while (true) {
                     if (topicCode != 81) {
                         publisherMode = false;
                         Scanner s = new Scanner(System.in);
@@ -144,10 +144,10 @@ public class User implements Serializable {
                 // we check whether the thread is still alive and if it is the appropriate messages are send to it.
                 // After the execution of the function the c.interrupted command is executed and the thread is interrupted.
                 if (c != null && c.isAlive()) {
-                    outUser.writeBoolean(true);
+                    outUser.writeBoolean(true); // 8U
                     outUser.flush();
                 } else {
-                    outUser.writeBoolean(false);
+                    outUser.writeBoolean(false); // 8U
                     outUser.flush();
                 }
             }

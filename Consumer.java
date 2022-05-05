@@ -10,7 +10,7 @@ public class Consumer extends Thread implements Serializable {
     private ObjectInputStream inConsumer;
     private int topicCode;
     private ArrayList<byte[]> history = new ArrayList<>();
-    private int pointerChunk = 0;
+    private int pointerChunk;
 
     public void run() {
         try {
@@ -25,6 +25,7 @@ public class Consumer extends Thread implements Serializable {
 
     // Collecting the chunks for a specific file and adding them to the correct ArrayList
     private void receiveData() throws IOException, ClassNotFoundException {
+        pointerChunk = history.size();
         System.out.println("\033[3mWaiting new message!\033[0m");
         byte[] fileNameChunk = (byte[]) inConsumer.readObject(); // 4.1C
         if (fileNameChunk != null)
