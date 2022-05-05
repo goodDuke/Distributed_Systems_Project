@@ -18,14 +18,7 @@ public class ActionsForConsumer extends Thread implements Serializable {
         try {
             pullAllData();
             while (!Thread.currentThread().isInterrupted()) {
-                outConsumer.writeBoolean(BrokerActions.newMessage); // 4C
-                outConsumer.flush();
-                System.out.println("HERE");
                 if (BrokerActions.newMessage) {
-                    System.out.println(2);
-                    System.out.println(BrokerActions.newMessage);
-                    outConsumer.writeBoolean(BrokerActions.newMessage); // 4C
-                    outConsumer.flush();
                     pull();
                     BrokerActions.newMessage = false;
                 }
@@ -36,9 +29,6 @@ public class ActionsForConsumer extends Thread implements Serializable {
     }
 
     private void pull() throws IOException {
-        boolean isEmpty = queues.get(requestedTopic).isEmpty();
-        outConsumer.writeBoolean(isEmpty); // 5C
-        outConsumer.flush();
         int i = 0;
         for (byte[] chunk: queues.get(requestedTopic)) {
             if (i >= pointerChunk) {
@@ -52,8 +42,6 @@ public class ActionsForConsumer extends Thread implements Serializable {
 
     private void pullAllData() throws IOException {
         boolean isEmpty = queues.get(requestedTopic).isEmpty();
-        System.out.println(1);
-        System.out.println(isEmpty);
         outConsumer.writeBoolean(isEmpty); // 1C
         outConsumer.flush();
         if (!isEmpty) {

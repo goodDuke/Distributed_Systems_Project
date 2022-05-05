@@ -108,12 +108,6 @@ public class Broker extends Thread implements Serializable {
                 }
             }
         }
-        /*for (int i = 0; i < brokersNum; i++) {
-            for (int t: registeredTopics[i]) {
-                if (t != 0)
-                    System.out.println(i + " " + t);
-            }
-        }*/
         return registeredTopics;
     }
 

@@ -51,7 +51,7 @@ public class User implements Serializable {
             inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
             outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
             inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
-            System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
+            System.out.println("\033[3mConnected to broker: " + b.getIp() + " on port: " + b.getPort() +"\033[0m");
             boolean disconnect = false;
             while (!disconnect) {
                 while (true) {
@@ -71,7 +71,7 @@ public class User implements Serializable {
                     boolean registeredUser = inUser.readBoolean(); // 5U
 
                     if (!registeredUser) {
-                        System.out.println("You are unable to access the requested topic.");
+                        System.out.println("\033[3mYou are unable to access the requested topic.\033[0m");
                         continue;
                     }
 
@@ -87,15 +87,12 @@ public class User implements Serializable {
                     }
 
                     if (matchedBroker == null)
-                        System.out.println("The topic \"" + topicString + "\" doesn't exist.");
+                        System.out.println("\033[3mThe topic \"" + topicString + "\" doesn't exist.\033[0m");
                     else {
                         connectToMatchedBroker(matchedBroker);
                         break;
                     }
                 }
-
-                if (c != null && c.isAlive())
-                    System.out.println("here");
 
                 if (topicCode != 81) {
                     c = new Consumer(b, topicCode, requestSocketConsumer, outConsumer, inConsumer);
@@ -142,10 +139,10 @@ public class User implements Serializable {
                     } else
                         break;
                 }
-                // If the consumer thread is still alive (waiting for an input in line 20 on file Consumer.java)
+                // If the consumer thread is still alive (waiting for an input in the receiveData function)
                 // and we try to close it an error will be produced. In order to avoid the error
-                // we check whether the thread is still alive and if it is a message is sent to it.
-                // After the execution of line 20 the c.interrupted command is executed and the thread is interrupted.
+                // we check whether the thread is still alive and if it is the appropriate messages are send to it.
+                // After the execution of the function the c.interrupted command is executed and the thread is interrupted.
                 if (c != null && c.isAlive()) {
                     outUser.writeBoolean(true);
                     outUser.flush();
@@ -155,10 +152,10 @@ public class User implements Serializable {
                 }
             }
         } catch (UnknownHostException unknownHost) {
-            System.err.println("You are trying to connect to an unknown host!");
+            System.err.println("\033[3mYou are trying to connect to an unknown host!\033[0m");
         } catch (ClassNotFoundException | IOException e) {
-            System.out.println("An error occurred while trying to connect to host: " + b.getIp() + " on port: " +
-                    b.getPort() + ". Check the IP address and the port.");
+            System.out.println("\033[3mAn error occurred while trying to connect to host: " + b.getIp() + " on port: " +
+                    b.getPort() + ". Check the IP address and the port.\033[0m");
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -172,7 +169,7 @@ public class User implements Serializable {
                 inConsumer.close();
                 requestSocketPublisher.close();
                 requestSocketConsumer.close();
-                System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
+                System.out.println("\033[3mConnection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed\033[0m");
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
@@ -200,7 +197,7 @@ public class User implements Serializable {
             requestSocketUser.close();
             requestSocketPublisher.close();
             requestSocketConsumer.close();
-            System.out.println("Connection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed");
+            System.out.println("\033[3mConnection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed\033[0m");
             b = matchedBroker;
             requestSocketUser = new Socket(b.getIp(), b.getPort());
             requestSocketPublisher = new Socket(b.getIp(), b.getPort());
@@ -211,7 +208,7 @@ public class User implements Serializable {
             inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
             outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
             inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
-            System.out.println("Connected to broker: " + b.getIp() + " on port: " + b.getPort());
+            System.out.println("\033[3mConnected to broker: " + b.getIp() + " on port: " + b.getPort() + "\033[0m");
             firstConnection = false;
             outUser.writeInt(id); // 1U
             outUser.flush();
