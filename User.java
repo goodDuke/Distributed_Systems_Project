@@ -30,12 +30,12 @@ public class User implements Serializable {
 
     public static void main(String args[]) {
         // TODO set IP
-        Broker b1 = new Broker("127.0.0.1", 1300);
+        Broker b1 = new Broker("192.168.68.108", 1100);
 
         // TODO set port, IP, id manually
-        int port = 2300;
-        String ip = "127.0.0.1";
-        int id = 2;
+        int port = 2100;
+        String ip = "192.168.68.108";
+        int id = 0;
         new User(ip, port, id, b1).connect();
     }
 

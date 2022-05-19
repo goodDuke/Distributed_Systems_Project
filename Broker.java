@@ -25,8 +25,8 @@ public class Broker extends Thread implements Serializable {
 
     public static void main(String[] args) {
         // TODO set port and IP manually
-        int port = 1100;
-        String ip = "127.0.0.1";
+        int port = 1200;
+        String ip = "192.168.68.108";
         b = new Broker(ip, port);
         b.acceptConnection();
     }

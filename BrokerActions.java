@@ -59,7 +59,7 @@ public class BrokerActions extends Thread implements Serializable {
                         publisherMode = inPublisher.readBoolean(); // 1P
                         if (publisherMode) {
                             p = new ActionsForPublishers(brokers, topics, b.getIp(), b.getPort(),
-                                    outPublisher, inPublisher, queues);
+                                    outPublisher, inPublisher);
                             p.start();
                             p.join();
                             BrokerActions.newMessage = true;
@@ -146,6 +146,10 @@ public class BrokerActions extends Thread implements Serializable {
             return false;
         } else
             return true;
+    }
+
+    public static HashMap<Integer, Queue<byte[]>> getQueues() {
+        return queues;
     }
 
     BrokerActions(ObjectInputStream inUser, ObjectOutputStream outUser,
