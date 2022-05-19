@@ -55,6 +55,7 @@ public class Consumer extends Thread implements Serializable {
 
     private void recreateFile(int blockCount, byte[] fileNameChunk) throws IOException {
         String fileName = new String(fileNameChunk, StandardCharsets.UTF_8);
+        // TODO change path
         String filepath = ".\\src\\recreated_files\\" + fileName;
         File file = new File(filepath);
         OutputStream stream = new FileOutputStream(file);
@@ -92,6 +93,7 @@ public class Consumer extends Thread implements Serializable {
         int currentChunk = 0;
         while (currentChunk < history.size()) {
             String fileName = new String(history.get(currentChunk), StandardCharsets.UTF_8);
+            // TODO change path
             String filepath = ".\\src\\recreated_files\\" + fileName;
             File file = new File(filepath);
             OutputStream stream = new FileOutputStream(file);

@@ -37,7 +37,7 @@ public class ActionsForPublishers extends Thread implements Serializable{
     }
 
     // Collecting the chunks for a specific file and adding them to the correct queue
-    private void receiveData() throws IOException, ClassNotFoundException {
+    private synchronized void receiveData() throws IOException, ClassNotFoundException {
         int topicCode = inPublisher.readInt(); // 2P
         byte[] fileName = (byte[]) inPublisher.readObject(); // 3P
         queues.get(topicCode).add(fileName);

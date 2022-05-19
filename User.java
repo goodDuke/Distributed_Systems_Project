@@ -29,14 +29,13 @@ public class User implements Serializable {
     private Thread c;
 
     public static void main(String args[]) {
-        Broker b1 = new Broker("127.0.0.1", 1100);
-        //Broker b2 = new Broker("127.0.0.1", 1200);
-        //Broker b3 = new Broker("127.0.0.1", 1300);
+        // TODO set IP
+        Broker b1 = new Broker("127.0.0.1", 1300);
 
         // TODO set port, IP, id manually
-        int port = 2100;
+        int port = 2300;
         String ip = "127.0.0.1";
-        int id = 0;
+        int id = 2;
         new User(ip, port, id, b1).connect();
     }
 
@@ -71,7 +70,8 @@ public class User implements Serializable {
                     boolean registeredUser = inUser.readBoolean(); // 5U
 
                     if (!registeredUser) {
-                        System.out.println("\033[3mYou are unable to access the requested topic.\033[0m");
+                        System.out.println("\033[3mYou are unable to access the requested topic." +
+                                "(not registered user)\033[0m");
                         continue;
                     }
 

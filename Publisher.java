@@ -32,7 +32,6 @@ public class Publisher extends Thread {
         System.out.println("Enter the path of the file: ");
         String path = s.nextLine();
         path_split = path.split(Pattern.quote(FileSystems.getDefault().getSeparator()));
-        //String path = ".\\src\\data\\mnm.txt";
         File file = new File(path);
         byte[] data = fileToByteArray(file);
         ArrayList<byte[]> chunks = createChunks(data);
