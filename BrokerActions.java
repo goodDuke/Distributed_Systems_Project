@@ -18,6 +18,7 @@ public class BrokerActions extends Thread implements Serializable {
     private ObjectOutputStream outPublisher;
     private ObjectInputStream inConsumer;
     private ObjectOutputStream outConsumer;
+    private ArrayList<String> userTopics = new ArrayList<>();
     private static HashMap<Integer, Queue<byte[]>> queues = new HashMap<>();
     private static HashMap<Integer, Broker> brokers = new HashMap<>();
     private static int[][] topics;
@@ -33,10 +34,15 @@ public class BrokerActions extends Thread implements Serializable {
                 int matchedBroker;
                 while (true) {
                     currentUser = inUser.readInt(); // 1U
+
+                    registeredTopics();
+                    outUser.writeObject(userTopics);
+                    outUser.flush();
+
                     boolean firstConnection = inUser.readBoolean(); // 2U
                     if (firstConnection) {
                         matchedBroker = getBroker();
-                        if (matchedBroker != -1 || requestedTopic == 81) {
+                        if (matchedBroker != 0 || requestedTopic == 81) {
                             if (c != null) {
                                 c.interrupt();
                             }
@@ -91,6 +97,8 @@ public class BrokerActions extends Thread implements Serializable {
 
     // Find the broker that contains the requested topic
     private int getBroker() {
+        String matchedBrokerIp = "0";
+        int matchedBrokerPort = 0;
         int matchedBroker = -1;
         try {
             String topicString = (String) inUser.readObject(); // 3U
@@ -103,18 +111,24 @@ public class BrokerActions extends Thread implements Serializable {
                 for (int i = 0; i < brokers.size(); i++) {
                     for (int topic : topics[i]) {
                         if (requestedTopic == topic) {
+                            matchedBrokerIp = brokers.get(i).getIp();
+                            matchedBrokerPort = brokers.get(i).getPort();
                             matchedBroker = i;
                             break;
                         }
                     }
-                    if (matchedBroker != -1) {
-                        outUser.writeObject(brokers.get(matchedBroker)); // 6U
+                    if (matchedBrokerPort != 0) {
+                        outUser.writeObject(matchedBrokerIp); // 6U
+                        outUser.flush();
+                        outUser.writeInt(matchedBrokerPort); // 6U
                         outUser.flush();
                         break;
                     }
                 }
-                if (matchedBroker == -1) {
-                    outUser.writeObject(null); // 6U
+                if (matchedBrokerPort == 0) {
+                    outUser.writeObject(matchedBrokerIp); // 6U
+                    outUser.flush();
+                    outUser.writeInt(matchedBrokerPort); // 6U
                     outUser.flush();
                 }
             }
@@ -146,6 +160,17 @@ public class BrokerActions extends Thread implements Serializable {
             return false;
         } else
             return true;
+    }
+
+    private void registeredTopics() {
+        for (String[] x: topicsAndUsers) {
+            for (String id: x[1].split(",")) {
+                if (Integer.toString(currentUser).equals(id)) {
+                    userTopics.add(x[0]);
+                    break;
+                }
+            }
+        }
     }
 
     public static HashMap<Integer, Queue<byte[]>> getQueues() {

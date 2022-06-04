@@ -4,7 +4,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class Consumer extends Thread implements Serializable {
-    private Broker b;
+    private String brokerIp;
+    private int brokerPort;
     private Socket requestSocketConsumer;
     private ObjectOutputStream outConsumer;
     private ObjectInputStream inConsumer;
@@ -56,7 +57,7 @@ public class Consumer extends Thread implements Serializable {
     private void recreateFile(int blockCount, byte[] fileNameChunk) throws IOException {
         String fileName = new String(fileNameChunk, StandardCharsets.UTF_8);
         // TODO change path
-        String filepath = ".\\src\\recreated_files\\" + fileName;
+        String filepath = "D:\\DS\\app\\src\\recreated_files\\" + fileName;
         File file = new File(filepath);
         OutputStream stream = new FileOutputStream(file);
         byte[] completeFile = new byte[512 * 1024 * blockCount];
@@ -94,7 +95,7 @@ public class Consumer extends Thread implements Serializable {
         while (currentChunk < history.size()) {
             String fileName = new String(history.get(currentChunk), StandardCharsets.UTF_8);
             // TODO change path
-            String filepath = ".\\src\\recreated_files\\" + fileName;
+            String filepath = "D:\\DS\\app\\src\\recreated_files\\" + fileName;
             File file = new File(filepath);
             OutputStream stream = new FileOutputStream(file);
             currentChunk++;
@@ -119,8 +120,9 @@ public class Consumer extends Thread implements Serializable {
         }
     }
 
-    Consumer(Broker b, int topicCode, Socket requestSocket, ObjectOutputStream out, ObjectInputStream in) {
-        this.b = b;
+    Consumer(String ip, int port, int topicCode, Socket requestSocket, ObjectOutputStream out, ObjectInputStream in) {
+        this.brokerIp = ip;
+        this.brokerPort = port;
         this.topicCode = topicCode;
         this.requestSocketConsumer = requestSocket;
         this.outConsumer = out;

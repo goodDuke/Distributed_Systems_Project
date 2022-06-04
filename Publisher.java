@@ -9,7 +9,8 @@ import java.net.*;
 import java.util.regex.Pattern;
 
 public class Publisher extends Thread {
-    private Broker b;
+    private String brokerIp;
+    private int brokerPort;
     private Socket requestSocketPublisher;
     private ObjectOutputStream outPublisher;
     private ObjectInputStream inPublisher;
@@ -87,9 +88,10 @@ public class Publisher extends Thread {
         return listOfChunks;
     }
 
-    Publisher(Broker b, int topicCode, Socket requestSocket,
+    Publisher(String ip, int port, int topicCode, Socket requestSocket,
               ObjectOutputStream out, ObjectInputStream in, int id) {
-        this.b = b;
+        this.brokerIp = ip;
+        this.brokerPort = port;
         this.topicCode = topicCode;
         this.requestSocketPublisher = requestSocket;
         this.outPublisher = out;

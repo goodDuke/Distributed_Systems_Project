@@ -4,14 +4,16 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Scanner;
 
 public class User implements Serializable {
+    private static int brokerPort;
+    private static String brokerIp;
     private String ip;
     private int port;
     private int id;
-    private Broker b;
     private Socket requestSocketUser;
     private Socket requestSocketPublisher;
     private Socket requestSocketConsumer;
@@ -21,6 +23,7 @@ public class User implements Serializable {
     private ObjectInputStream inPublisher;
     private ObjectOutputStream outConsumer;
     private ObjectInputStream inConsumer;
+    private ArrayList<String> userTopics;
     private int topicCode;
     private String topicString;
     private boolean firstConnection = true;
@@ -28,38 +31,42 @@ public class User implements Serializable {
     private Thread p;
     private Thread c;
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         // TODO set IP
-        Broker b1 = new Broker("192.168.68.108", 1100);
+        brokerIp = "192.168.68.108";
+        brokerPort = 1200;
 
         // TODO set port, IP, id manually
-        int port = 2100;
+        int port = 2200;
         String ip = "192.168.68.108";
-        int id = 0;
-        new User(ip, port, id, b1).connect();
+        int id = 1;
+        new User(ip, port, id).connect();
     }
 
     private void connect() {
         try {
-            requestSocketUser = new Socket(b.getIp(), b.getPort());
-            requestSocketPublisher = new Socket(b.getIp(), b.getPort());
-            requestSocketConsumer = new Socket(b.getIp(), b.getPort());
+            requestSocketUser = new Socket(brokerIp, brokerPort);
+            requestSocketPublisher = new Socket(brokerIp, brokerPort);
+            requestSocketConsumer = new Socket(brokerIp, brokerPort);
             outUser = new ObjectOutputStream(requestSocketUser.getOutputStream());
             inUser = new ObjectInputStream(requestSocketUser.getInputStream());
             outPublisher = new ObjectOutputStream(requestSocketPublisher.getOutputStream());
             inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
             outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
             inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
-            System.out.println("\033[3mConnected to broker: " + b.getIp() + " on port: " + b.getPort() + "\033[0m");
+            System.out.println("\033[3mConnected to broker: " + brokerIp + " on port: " + brokerPort + "\033[0m");
             boolean disconnect = false;
             while (!disconnect) {
                 while (true) {
-                    topicCode = getTopic();
                     outUser.writeInt(id); // 1U
                     outUser.flush();
 
+                    userTopics = (ArrayList<String>) inUser.readObject();
+
                     outUser.writeBoolean(firstConnection); // 2U
                     outUser.flush();
+
+                    topicCode = getTopic();
 
                     outUser.writeObject(topicString); // 3U
                     outUser.flush();
@@ -76,7 +83,8 @@ public class User implements Serializable {
                     }
 
                     // Get broker object which contains the requested topic
-                    Broker matchedBroker = (Broker) inUser.readObject(); // 6U
+                    String matchedBrokerIp = (String) inUser.readObject(); // 6U
+                    int matchedBrokerPort = inUser.readInt();
 
                     // If the user pressed "Q" when asked to enter the topic disconnect
                     if (topicCode == 81) {
@@ -86,16 +94,16 @@ public class User implements Serializable {
                         break;
                     }
 
-                    if (matchedBroker == null)
+                    if (matchedBrokerPort == 0)
                         System.out.println("\033[3mThe topic \"" + topicString + "\" doesn't exist.\033[0m");
                     else {
-                        connectToMatchedBroker(matchedBroker);
+                        connectToMatchedBroker(matchedBrokerIp, matchedBrokerPort);
                         break;
                     }
                 }
 
                 if (topicCode != 81) {
-                    c = new Consumer(b, topicCode, requestSocketConsumer, outConsumer, inConsumer);
+                    c = new Consumer(brokerIp, brokerPort, topicCode, requestSocketConsumer, outConsumer, inConsumer);
                     c.start();
                 }
 
@@ -112,7 +120,7 @@ public class User implements Serializable {
                         outPublisher.writeBoolean(publisherMode); // 1P
                         outPublisher.flush();
                         if (publisherMode) {
-                            p = new Publisher(b, topicCode, requestSocketPublisher,
+                            p = new Publisher(brokerIp, brokerPort, topicCode, requestSocketPublisher,
                                     outPublisher, inPublisher, id);
                             p.start();
                             p.join();
@@ -154,8 +162,8 @@ public class User implements Serializable {
         } catch (UnknownHostException unknownHost) {
             System.err.println("\033[3mYou are trying to connect to an unknown host!\033[0m");
         } catch (ClassNotFoundException | IOException e) {
-            System.out.println("\033[3mAn error occurred while trying to connect to host: " + b.getIp() + " on port: " +
-                    b.getPort() + ". Check the IP address and the port.\033[0m");
+            System.out.println("\033[3mAn error occurred while trying to connect to host: " + brokerIp + " on port: " +
+                    brokerPort + ". Check the IP address and the port.\033[0m");
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -169,7 +177,7 @@ public class User implements Serializable {
                 inConsumer.close();
                 requestSocketPublisher.close();
                 requestSocketConsumer.close();
-                System.out.println("\033[3mConnection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed\033[0m");
+                System.out.println("\033[3mConnection to broker: " + brokerIp + " on port: " + brokerPort + " closed\033[0m");
             } catch (IOException ioException) {
                 ioException.printStackTrace();
             }
@@ -179,15 +187,15 @@ public class User implements Serializable {
     // Create a hash code for the given topic
     private int getTopic() {
         Scanner s = new Scanner(System.in);
-        System.out.println("Enter the topic for port " + b.getPort() + " or press 'Q' to disconnect: ");
+        System.out.println("Enter the topic for port " + brokerPort + " or press 'Q' to disconnect: ");
         topicString = s.nextLine();
         return topicString.hashCode();
     }
 
     // Check if the current broker is the correct one
     // Otherwise close the current connection and connect to the right one
-    private void connectToMatchedBroker(Broker matchedBroker) throws IOException {
-        if (!Objects.equals(b.getIp(), matchedBroker.getIp()) || !Objects.equals(b.getPort(), matchedBroker.getPort())) {
+    private void connectToMatchedBroker(String matchedBrokerIp, int matchedBrokerPort) throws IOException {
+        if (!Objects.equals(brokerIp, matchedBrokerIp) || !Objects.equals(brokerPort, matchedBrokerPort)) {
             inUser.close();
             outUser.close();
             inPublisher.close();
@@ -197,18 +205,19 @@ public class User implements Serializable {
             requestSocketUser.close();
             requestSocketPublisher.close();
             requestSocketConsumer.close();
-            System.out.println("\033[3mConnection to broker: " + b.getIp() + " on port: " + b.getPort() + " closed\033[0m");
-            b = matchedBroker;
-            requestSocketUser = new Socket(b.getIp(), b.getPort());
-            requestSocketPublisher = new Socket(b.getIp(), b.getPort());
-            requestSocketConsumer = new Socket(b.getIp(), b.getPort());
+            System.out.println("\033[3mConnection to broker: " + brokerIp + " on port: " + brokerPort + " closed\033[0m");
+            brokerIp = matchedBrokerIp;
+            brokerPort = matchedBrokerPort;
+            requestSocketUser = new Socket(brokerIp, brokerPort);
+            requestSocketPublisher = new Socket(brokerIp, brokerPort);
+            requestSocketConsumer = new Socket(brokerIp, brokerPort);
             outUser = new ObjectOutputStream(requestSocketUser.getOutputStream());
             inUser = new ObjectInputStream(requestSocketUser.getInputStream());
             outPublisher = new ObjectOutputStream(requestSocketPublisher.getOutputStream());
             inPublisher = new ObjectInputStream(requestSocketPublisher.getInputStream());
             outConsumer = new ObjectOutputStream(requestSocketConsumer.getOutputStream());
             inConsumer = new ObjectInputStream(requestSocketConsumer.getInputStream());
-            System.out.println("\033[3mConnected to broker: " + b.getIp() + " on port: " + b.getPort() + "\033[0m");
+            System.out.println("\033[3mConnected to broker: " + brokerIp + " on port: " + brokerPort + "\033[0m");
             firstConnection = false;
             outUser.writeInt(id); // 1U
             outUser.flush();
@@ -219,10 +228,9 @@ public class User implements Serializable {
         }
     }
 
-    public User(String ip, int port, int id, Broker b) {
+    public User(String ip, int port, int id) {
         this.ip = ip;
         this.port = port;
-        this.b = b;
         this.id = id;
     }
 }

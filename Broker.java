@@ -25,7 +25,7 @@ public class Broker extends Thread implements Serializable {
 
     public static void main(String[] args) {
         // TODO set port and IP manually
-        int port = 1200;
+        int port = 1300;
         String ip = "192.168.68.108";
         b = new Broker(ip, port);
         b.acceptConnection();
@@ -85,7 +85,7 @@ public class Broker extends Thread implements Serializable {
 
     // Match each broker to address
     private HashMap<Integer, Broker> matchBrokerToAddress(ArrayList<String> availableIps, ArrayList<Integer> availablePorts, int brokersNum) {
-        HashMap<Integer, Broker> brokerAddresses = new HashMap<Integer, Broker>();
+        HashMap<Integer, Broker> brokerAddresses = new HashMap<>();
         for (int i = 0; i < availablePorts.size(); i++) {
             brokerAddresses.put(i, new Broker(availableIps.get(i), availablePorts.get(i)));
             if (availableIps.get(i).equals(ip) && availablePorts.get(i) == port)
