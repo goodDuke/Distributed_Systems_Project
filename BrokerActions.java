@@ -71,9 +71,10 @@ public class BrokerActions extends Thread implements Serializable {
                             BrokerActions.newMessage = true;
                         }
 
-                        String userInput = (String) inUser.readObject(); // 7U
-                        if (userInput.equals("T")) {
+                        boolean checkBackButton = inUser.readBoolean(); // 7U
+                        if (checkBackButton) {
                             c.interrupt();
+                            System.out.println("here");
                             break;
                         }
                     } else if (currentBroker != matchedBroker) {
@@ -90,7 +91,7 @@ public class BrokerActions extends Thread implements Serializable {
                     outConsumer.flush();
                 }
             }
-        } catch (IOException | InterruptedException | ClassNotFoundException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }

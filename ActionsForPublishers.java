@@ -12,6 +12,7 @@ public class ActionsForPublishers extends Thread implements Serializable{
     private HashMap<Integer, Queue<byte[]>> queues;
     private String ip;
     private int port;
+    private static Object lock = new Object();
 
     public ActionsForPublishers(HashMap<Integer, Broker> brokers,
                                 int[][] topics, String ip, int port,
@@ -35,10 +36,10 @@ public class ActionsForPublishers extends Thread implements Serializable{
 
     // Collecting the chunks for a specific file and adding them to the correct queue
     private void receiveData() throws IOException, ClassNotFoundException {
-        synchronized(queues) {
+        synchronized(lock) {
             int topicCode = inPublisher.readInt(); // 2P
-            byte[] fileName = (byte[]) inPublisher.readObject(); // 3P
-            queues.get(topicCode).add(fileName);
+            //byte[] fileName = (byte[]) inPublisher.readObject(); // 3P
+            //queues.get(topicCode).add(fileName);
             byte[] blockCountChunk = (byte[]) inPublisher.readObject(); // 4P
             queues.get(topicCode).add(blockCountChunk);
             byte[] publisherId = (byte[]) inPublisher.readObject(); // 5P
