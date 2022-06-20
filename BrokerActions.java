@@ -29,42 +29,43 @@ public class BrokerActions extends Thread implements Serializable {
         try {
             boolean disconnect = false;
             while (!disconnect) {
-                // Check which broker contains the requested topic only if the
-                // current broker is the first one the publisher connected to
                 int matchedBroker;
                 while (true) {
                     currentUser = inUser.readInt(); // 1U
+                    System.out.println("Current user " + currentUser);
 
                     registeredTopics();
                     outUser.writeObject(userTopics);
                     outUser.flush();
 
                     boolean firstConnection = inUser.readBoolean(); // 2U
+                    System.out.println("First connection " + firstConnection);
+
                     if (firstConnection) {
+                        // Check which broker contains the requested topic only if the
+                        // current broker is the first one the publisher connected to
                         matchedBroker = getBroker();
-                        if (matchedBroker != 0 || requestedTopic == 81) {
+                        if (matchedBroker != 0) {
                             if (c != null) {
                                 c.interrupt();
                             }
                             break;
                         }
-                    } else if (requestedTopic != 81) {
-                        requestedTopic = inUser.readInt(); // 3U
+                    } else {
                         matchedBroker = currentBroker;
+                        requestedTopic = inUser.readInt(); // 3U
                         break;
                     }
                 }
 
-                if (requestedTopic != 81 && currentBroker == matchedBroker) {
+                if (currentBroker == matchedBroker) {
                     c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic);
                     c.start();
                 }
 
                 while (true) {
-                    if (requestedTopic != 81 && currentBroker == matchedBroker) {
-                        System.out.println("Here");
+                    if (currentBroker == matchedBroker) {
                         publisherMode = inPublisher.readBoolean(); // 1P
-                        System.out.println(publisherMode);
                         if (publisherMode) {
                             p = new ActionsForPublishers(brokers, topics, b.getIp(), b.getPort(),
                                     outPublisher, inPublisher);
@@ -72,15 +73,13 @@ public class BrokerActions extends Thread implements Serializable {
                             p.join();
                             BrokerActions.newMessage = true;
                         }
-
                         boolean checkBackButton = inUser.readBoolean(); // 7U
-                        System.out.println(checkBackButton);
                         if (checkBackButton) {
                             c.interrupt();
-                            System.out.println("here");
+                            System.out.println("Back button pressed");
                             break;
                         }
-                    } else if (currentBroker != matchedBroker) {
+                    } else {
                         disconnect = true;
                         break;
                     }
@@ -109,64 +108,32 @@ public class BrokerActions extends Thread implements Serializable {
             System.out.println(topicString);
             requestedTopic = inUser.readInt(); // 4U
             System.out.println(requestedTopic);
-            //boolean registeredUser = checkUser(topicString);
-            //outUser.writeBoolean(registeredUser); // 5U
-            //outUser.flush();
-            // If the user is registered to use the requested topic search for the corresponding broker
-            //if (registeredUser) {
-                for (int i = 0; i < brokers.size(); i++) {
-                    for (int topic : topics[i]) {
-                        if (requestedTopic == topic) {
-                            matchedBrokerIp = brokers.get(i).getIp();
-                            matchedBrokerPort = brokers.get(i).getPort();
-                            matchedBroker = i;
-                            break;
-                        }
-                    }
-                    if (matchedBrokerPort != 0) {
-                        System.out.println(matchedBrokerIp);
-                        outUser.writeObject(matchedBrokerIp); // 6U
-                        outUser.flush();
-                        outUser.writeInt(matchedBrokerPort); // 6U
-                        outUser.flush();
+            for (int i = 0; i < brokers.size(); i++) {
+                for (int topic : topics[i]) {
+                    // For each broker check the available topics. If one of them matches with the
+                    // requested topic then the needed broker is found.
+                    if (requestedTopic == topic) {
+                        matchedBrokerIp = brokers.get(i).getIp();
+                        matchedBrokerPort = brokers.get(i).getPort();
+                        matchedBroker = i;
                         break;
                     }
                 }
-                if (matchedBrokerPort == 0) {
-                    outUser.writeObject(matchedBrokerIp); // 6U
+                if (matchedBrokerPort != 0) {
+                    // Send the IP and the port of the broker to the User in order to create a new connection
+                    // (if it is necessary)
+                    System.out.println("Broker found");
+                    outUser.writeObject(matchedBrokerIp); // 5U
                     outUser.flush();
                     outUser.writeInt(matchedBrokerPort); // 6U
                     outUser.flush();
+                    break;
                 }
-            //}
-
+            }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
         return matchedBroker;
-    }
-
-    // Check whether the user requesting the topic is registered to use it
-    private boolean checkUser(String topicString) {
-        // Return false only if the topic exists and the user isn't registered to use it
-        // Return true otherwise
-        boolean topicExists = false;
-        for (String[] x: topicsAndUsers) {
-            if (x[0].equals(topicString)) {
-                topicExists = true;
-                // If there are users registered in the topic
-                if (x.length == 2) {
-                    for (String id : x[1].split(",")) {
-                        if (currentUser == Integer.parseInt(id))
-                            return true;
-                    }
-                }
-            }
-        }
-        if (topicExists) {
-            return false;
-        } else
-            return true;
     }
 
     private void registeredTopics() {
