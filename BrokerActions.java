@@ -62,7 +62,9 @@ public class BrokerActions extends Thread implements Serializable {
 
                 while (true) {
                     if (requestedTopic != 81 && currentBroker == matchedBroker) {
+                        System.out.println("Here");
                         publisherMode = inPublisher.readBoolean(); // 1P
+                        System.out.println(publisherMode);
                         if (publisherMode) {
                             p = new ActionsForPublishers(brokers, topics, b.getIp(), b.getPort(),
                                     outPublisher, inPublisher);
@@ -72,6 +74,7 @@ public class BrokerActions extends Thread implements Serializable {
                         }
 
                         boolean checkBackButton = inUser.readBoolean(); // 7U
+                        System.out.println(checkBackButton);
                         if (checkBackButton) {
                             c.interrupt();
                             System.out.println("here");
@@ -103,12 +106,14 @@ public class BrokerActions extends Thread implements Serializable {
         int matchedBroker = -1;
         try {
             String topicString = (String) inUser.readObject(); // 3U
+            System.out.println(topicString);
             requestedTopic = inUser.readInt(); // 4U
-            boolean registeredUser = checkUser(topicString);
-            outUser.writeBoolean(registeredUser); // 5U
-            outUser.flush();
+            System.out.println(requestedTopic);
+            //boolean registeredUser = checkUser(topicString);
+            //outUser.writeBoolean(registeredUser); // 5U
+            //outUser.flush();
             // If the user is registered to use the requested topic search for the corresponding broker
-            if (registeredUser) {
+            //if (registeredUser) {
                 for (int i = 0; i < brokers.size(); i++) {
                     for (int topic : topics[i]) {
                         if (requestedTopic == topic) {
@@ -119,6 +124,7 @@ public class BrokerActions extends Thread implements Serializable {
                         }
                     }
                     if (matchedBrokerPort != 0) {
+                        System.out.println(matchedBrokerIp);
                         outUser.writeObject(matchedBrokerIp); // 6U
                         outUser.flush();
                         outUser.writeInt(matchedBrokerPort); // 6U
@@ -132,7 +138,7 @@ public class BrokerActions extends Thread implements Serializable {
                     outUser.writeInt(matchedBrokerPort); // 6U
                     outUser.flush();
                 }
-            }
+            //}
 
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
