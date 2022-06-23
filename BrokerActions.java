@@ -61,21 +61,17 @@ public class BrokerActions extends Thread implements Serializable {
                 if (currentBroker == matchedBroker) {
                     c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic);
                     c.start();
+                    p = new ActionsForPublishers(brokers, topics, b.getIp(), b.getPort(),
+                            outPublisher, inPublisher);
+                    p.start();
                 }
 
                 while (true) {
                     if (currentBroker == matchedBroker) {
-                        publisherMode = inPublisher.readBoolean(); // 1P
-                        if (publisherMode) {
-                            p = new ActionsForPublishers(brokers, topics, b.getIp(), b.getPort(),
-                                    outPublisher, inPublisher);
-                            p.start();
-                            p.join();
-                            BrokerActions.newMessage = true;
-                        }
                         boolean checkBackButton = inUser.readBoolean(); // 7U
                         if (checkBackButton) {
                             c.interrupt();
+                            p.interrupt();
                             System.out.println("Back button pressed");
                             break;
                         }
@@ -91,7 +87,7 @@ public class BrokerActions extends Thread implements Serializable {
                     outConsumer.flush();
                 }
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

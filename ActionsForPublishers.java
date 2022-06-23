@@ -27,8 +27,12 @@ public class ActionsForPublishers extends Thread implements Serializable{
 
     public void run() {
         try {
-            queues = BrokerActions.getQueues();
-            receiveData();
+            while (true) {
+                inPublisher.readBoolean(); //1P
+                queues = BrokerActions.getQueues();
+                receiveData();
+                BrokerActions.newMessage = true;
+            }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
