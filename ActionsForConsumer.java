@@ -17,6 +17,7 @@ public class ActionsForConsumer extends Thread implements Serializable {
             pullAllData();
             while (!Thread.currentThread().isInterrupted()) {
                 if (BrokerActions.newMessage) {
+                    System.out.println("Actions for Consumer");
                     pull();
                     BrokerActions.newMessage = false;
                 }
@@ -30,7 +31,7 @@ public class ActionsForConsumer extends Thread implements Serializable {
         int i = 0;
         for (byte[] chunk: queues.get(requestedTopic)) {
             if (i >= pointerChunk) {
-                outConsumer.writeObject(chunk); // 6C
+                outConsumer.writeObject(chunk); // 4C
                 outConsumer.flush();
             }
             i++;

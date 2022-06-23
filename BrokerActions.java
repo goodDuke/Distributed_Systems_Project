@@ -89,8 +89,6 @@ public class BrokerActions extends Thread implements Serializable {
                     outConsumer.flush();
                     outConsumer.writeObject(null);
                     outConsumer.flush();
-                    outConsumer.writeObject(null);
-                    outConsumer.flush();
                 }
             }
         } catch (IOException | InterruptedException e) {
@@ -127,6 +125,7 @@ public class BrokerActions extends Thread implements Serializable {
                     outUser.flush();
                     outUser.writeInt(matchedBrokerPort); // 6U
                     outUser.flush();
+                    System.out.println("Broker send");
                     break;
                 }
             }
