@@ -27,12 +27,16 @@ public class ActionsForPublishers extends Thread implements Serializable{
 
     public void run() {
         try {
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 System.out.println("Waiting to start actions for publishers");
-                inPublisher.readBoolean(); //1P
-                queues = BrokerActions.getQueues();
-                receiveData();
-                BrokerActions.newMessage = true;
+                boolean continuePublisher = inPublisher.readBoolean(); //1P
+                System.out.println("Publisher: continuePublisher " + continuePublisher);
+                if (continuePublisher) {
+                    queues = BrokerActions.getQueues();
+                    receiveData();
+                    System.out.println("receiveData() ended");
+                    BrokerActions.newMessage = true;
+                }
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
@@ -42,9 +46,8 @@ public class ActionsForPublishers extends Thread implements Serializable{
     // Collecting the chunks for a specific file and adding them to the correct queue
     private void receiveData() throws IOException, ClassNotFoundException {
         synchronized(lock) {
+            System.out.println("Waiting on receiveData()");
             int topicCode = inPublisher.readInt(); // 2P
-            //byte[] fileName = (byte[]) inPublisher.readObject(); // 3P
-            //queues.get(topicCode).add(fileName);
             byte[] blockCountChunk = (byte[]) inPublisher.readObject(); // 4P
             queues.get(topicCode).add(blockCountChunk);
             byte[] publisherId = (byte[]) inPublisher.readObject(); // 5P

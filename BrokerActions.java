@@ -34,16 +34,16 @@ public class BrokerActions extends Thread implements Serializable {
                     currentUser = inUser.readInt(); // 1U
                     System.out.println("Current user " + currentUser);
 
-                    registeredTopics();
-                    System.out.println("Trying to send the topics");
-                    outUser.writeObject(userTopics); //2U
-                    outUser.flush();
-                    System.out.println("Topics send");
-
-                    boolean firstConnection = inUser.readBoolean(); // 3U
+                    boolean firstConnection = inUser.readBoolean(); // 2U
                     System.out.println("First connection " + firstConnection);
 
                     if (firstConnection) {
+                        registeredTopics();
+                        System.out.println("Trying to send the topics");
+                        outUser.writeObject(userTopics); // 3U
+                        outUser.flush();
+                        System.out.println("Topics send");
+
                         // Check which broker contains the requested topic only if the
                         // current broker is the first one the publisher connected to
                         matchedBroker = getBroker();
@@ -118,14 +118,7 @@ public class BrokerActions extends Thread implements Serializable {
                         break;
                     }
                 }
-                if (matchedBrokerPort == b.getPort()) {
-                    outUser.writeBoolean(true);
-                    outUser.flush();
-                } else {
-                    outUser.writeBoolean(false);
-                    outUser.flush();
-                }
-                if (matchedBrokerPort != b.getPort() && matchedBrokerPort != 0) {
+                if (matchedBrokerPort != 0) {
                     // Send the IP and the port of the broker to the User in order to create a new connection
                     // (if it is necessary)
                     System.out.println("Broker found");
