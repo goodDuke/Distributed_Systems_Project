@@ -28,6 +28,7 @@ public class ActionsForPublishers extends Thread implements Serializable{
     public void run() {
         try {
             while (true) {
+                System.out.println("Waiting to start actions for publishers");
                 inPublisher.readBoolean(); //1P
                 queues = BrokerActions.getQueues();
                 receiveData();

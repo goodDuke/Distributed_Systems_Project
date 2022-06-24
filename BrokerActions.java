@@ -35,17 +35,19 @@ public class BrokerActions extends Thread implements Serializable {
                     System.out.println("Current user " + currentUser);
 
                     registeredTopics();
-                    outUser.writeObject(userTopics);
+                    System.out.println("Trying to send the topics");
+                    outUser.writeObject(userTopics); //2U
                     outUser.flush();
+                    System.out.println("Topics send");
 
-                    boolean firstConnection = inUser.readBoolean(); // 2U
+                    boolean firstConnection = inUser.readBoolean(); // 3U
                     System.out.println("First connection " + firstConnection);
 
                     if (firstConnection) {
                         // Check which broker contains the requested topic only if the
                         // current broker is the first one the publisher connected to
                         matchedBroker = getBroker();
-                        if (matchedBroker != 0) {
+                        if (matchedBroker != -1) {
                             if (c != null) {
                                 c.interrupt();
                             }
@@ -59,6 +61,7 @@ public class BrokerActions extends Thread implements Serializable {
                 }
 
                 if (currentBroker == matchedBroker) {
+                    System.out.println("Creating c and p threads");
                     c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic);
                     c.start();
                     p = new ActionsForPublishers(brokers, topics, b.getIp(), b.getPort(),
@@ -66,6 +69,7 @@ public class BrokerActions extends Thread implements Serializable {
                     p.start();
                 }
 
+                System.out.println("Second while");
                 while (true) {
                     if (currentBroker == matchedBroker) {
                         boolean checkBackButton = inUser.readBoolean(); // 7U
@@ -76,6 +80,7 @@ public class BrokerActions extends Thread implements Serializable {
                             break;
                         }
                     } else {
+                        System.out.println("Incorrect broker (second while)");
                         disconnect = true;
                         break;
                     }
@@ -98,9 +103,9 @@ public class BrokerActions extends Thread implements Serializable {
         int matchedBrokerPort = 0;
         int matchedBroker = -1;
         try {
-            String topicString = (String) inUser.readObject(); // 3U
+            String topicString = (String) inUser.readObject(); // 4U
             System.out.println(topicString);
-            requestedTopic = inUser.readInt(); // 4U
+            requestedTopic = inUser.readInt(); // 5U
             System.out.println(requestedTopic);
             for (int i = 0; i < brokers.size(); i++) {
                 for (int topic : topics[i]) {
@@ -113,11 +118,19 @@ public class BrokerActions extends Thread implements Serializable {
                         break;
                     }
                 }
-                if (matchedBrokerPort != 0) {
+                if (matchedBrokerPort == b.getPort()) {
+                    outUser.writeBoolean(true);
+                    outUser.flush();
+                } else {
+                    outUser.writeBoolean(false);
+                    outUser.flush();
+                }
+                if (matchedBrokerPort != b.getPort() && matchedBrokerPort != 0) {
                     // Send the IP and the port of the broker to the User in order to create a new connection
                     // (if it is necessary)
                     System.out.println("Broker found");
-                    outUser.writeObject(matchedBrokerIp); // 5U
+                    System.out.println(matchedBrokerIp + " " + matchedBrokerPort);
+                    outUser.writeObject(matchedBrokerIp); //  6U
                     outUser.flush();
                     outUser.writeInt(matchedBrokerPort); // 6U
                     outUser.flush();
@@ -161,7 +174,7 @@ public class BrokerActions extends Thread implements Serializable {
         BrokerActions.brokers = brokers;
         BrokerActions.topics = topics;
         this.b = b;
-        this.queues = queues;
+        BrokerActions.queues = queues;
         this.currentBroker = currentBroker;
     }
 }
