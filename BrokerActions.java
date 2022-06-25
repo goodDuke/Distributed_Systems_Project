@@ -32,17 +32,17 @@ public class BrokerActions extends Thread implements Serializable {
                 int matchedBroker;
                 while (true) {
                     currentUser = inUser.readInt(); // 1U
-                    System.out.println("Current user " + currentUser);
+//                    System.out.println("Current user " + currentUser);
 
                     boolean firstConnection = inUser.readBoolean(); // 2U
-                    System.out.println("First connection " + firstConnection);
+//                    System.out.println("First connection " + firstConnection);
 
                     if (firstConnection) {
                         registeredTopics();
-                        System.out.println("Trying to send the topics");
+//                        System.out.println("Trying to send the topics");
                         outUser.writeObject(userTopics); // 3U
                         outUser.flush();
-                        System.out.println("Topics send");
+//                        System.out.println("Topics send");
 
                         // Check which broker contains the requested topic only if the
                         // current broker is the first one the publisher connected to
@@ -61,7 +61,7 @@ public class BrokerActions extends Thread implements Serializable {
                 }
 
                 if (currentBroker == matchedBroker) {
-                    System.out.println("Creating c and p threads");
+//                    System.out.println("Creating c and p threads");
                     c = new ActionsForConsumer(inConsumer, outConsumer, queues, requestedTopic);
                     c.start();
                     p = new ActionsForPublishers(brokers, topics, b.getIp(), b.getPort(),
@@ -69,18 +69,18 @@ public class BrokerActions extends Thread implements Serializable {
                     p.start();
                 }
 
-                System.out.println("Second while");
+//                System.out.println("Second while");
                 while (true) {
                     if (currentBroker == matchedBroker) {
                         boolean checkBackButton = inUser.readBoolean(); // 7U
                         if (checkBackButton) {
                             c.interrupt();
                             p.interrupt();
-                            System.out.println("Back button pressed");
+//                            System.out.println("Back button pressed");
                             break;
                         }
                     } else {
-                        System.out.println("Incorrect broker (second while)");
+//                        System.out.println("Incorrect broker (second while)");
                         disconnect = true;
                         break;
                     }
@@ -121,13 +121,13 @@ public class BrokerActions extends Thread implements Serializable {
                 if (matchedBrokerPort != 0) {
                     // Send the IP and the port of the broker to the User in order to create a new connection
                     // (if it is necessary)
-                    System.out.println("Broker found");
+//                    System.out.println("Broker found");
                     System.out.println(matchedBrokerIp + " " + matchedBrokerPort);
                     outUser.writeObject(matchedBrokerIp); //  6U
                     outUser.flush();
                     outUser.writeInt(matchedBrokerPort); // 6U
                     outUser.flush();
-                    System.out.println("Broker send");
+//                    System.out.println("Broker send");
                     break;
                 }
             }

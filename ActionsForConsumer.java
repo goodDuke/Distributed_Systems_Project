@@ -17,7 +17,7 @@ public class ActionsForConsumer extends Thread implements Serializable {
             pullAllData();
             while (!Thread.currentThread().isInterrupted()) {
                 if (BrokerActions.newMessage) {
-                    System.out.println("Actions for Consumer");
+//                    System.out.println("Actions for Consumer");
                     pull();
                     BrokerActions.newMessage = false;
                 }
