@@ -104,9 +104,9 @@ public class BrokerActions extends Thread implements Serializable {
         int matchedBroker = -1;
         try {
             String topicString = (String) inUser.readObject(); // 4U
-            System.out.println(topicString);
+//            System.out.println(topicString);
             requestedTopic = inUser.readInt(); // 5U
-            System.out.println(requestedTopic);
+//            System.out.println(requestedTopic);
             for (int i = 0; i < brokers.size(); i++) {
                 for (int topic : topics[i]) {
                     // For each broker check the available topics. If one of them matches with the
@@ -122,7 +122,7 @@ public class BrokerActions extends Thread implements Serializable {
                     // Send the IP and the port of the broker to the User in order to create a new connection
                     // (if it is necessary)
 //                    System.out.println("Broker found");
-                    System.out.println(matchedBrokerIp + " " + matchedBrokerPort);
+//                    System.out.println(matchedBrokerIp + " " + matchedBrokerPort);
                     outUser.writeObject(matchedBrokerIp); //  6U
                     outUser.flush();
                     outUser.writeInt(matchedBrokerPort); // 6U
